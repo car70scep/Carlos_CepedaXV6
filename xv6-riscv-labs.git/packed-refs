@@ -1,0 +1,5 @@
+# pack-refs with: peeled fully-peeled sorted 
+50f8d6cd2a682a4604ebbb82ef429ea07f3738a1 refs/heads/lab1soln
+a1da53a5a12e21b44a2c79d962a437fa2107627c refs/heads/riscv
+6b68b52695a5e9596881b50c7eeb16f5e1f86d2a refs/heads/syscalls
+2e0c10536089bb67f96664e3c6e3c11dd841781c refs/heads/util
