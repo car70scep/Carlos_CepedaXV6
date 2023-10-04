@@ -1,46 +1,32 @@
-#include "kernel/types.h"
-#include "user/user.h"
 #include "kernel/param.h"
-
+#include "kernel/types.h"
 #include "kernel/stat.h"
 #include "kernel/pstat.h"
-
+#include "user/user.h"
 #define MAXARGS 16
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(2, "Usage: time1 command [args...]\n");
-        exit(1);
+int
+main(int argc, char *argv[]){
+  int i, start, elapsed, rc;
+  char *newargv[MAXARGS];
+  struct rusage ru;
+
+  if(argc < 2){
+      printf("Usage: time <comm> [args...]");
+      exit(-1);
+   }
+   for(i = 1; i < argc; i++){
+       newargv[i-1] = argv[i];
     }
+    newargv[argc-1] = 0;
+    start = uptime();
+    rc = fork();
 
-    // Start timing
-    int start_time = uptime();
-
-    // Fork a child process to execute the command
-    int pid = fork();
-    if (pid < 0) {
-        fprintf(2, "Fork failed\n");
-        exit(1);
-    } else if (pid == 0) {
-        // This is the child process
-        exec(argv[1], argv + 1);
-        // If exec() fails, print an error message and exit
-        fprintf(2, "exec failed\n");
-        exit(1);
-    } else {
-        // This is the parent process
-        int status;
-        wait(&status);
-
-        // Stop timing
-        int end_time = uptime();
-
-        // Calculate and print elapsed time
-        int elapsed_time = end_time - start_time;
-        printf("Time: %d ticks\n", elapsed_time);
-
-        // Print elapsed time in a different format
-        printf("elapsed time: %d ticks\n", elapsed_time);
+    if(rc == 0){
+       exec(newargv[0], newargv);
     }
-   exit(0);
+     wait2(0, &ru);
+     elapsed = uptime() - start;
+     printf("Elapsed Time: %d Ticks, CPU Time: %d Ticks, CPU Percentage: %d% \n", elapsed, ru.cputime, ru.cputime*100/elapsed);
+     exit(0);
 }
