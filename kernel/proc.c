@@ -390,7 +390,8 @@ wait(uint64 addr)
   struct proc *p = myproc();
 
   acquire(&wait_lock);
-
+  struct  rusage cptime;
+  
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
@@ -426,6 +427,39 @@ wait(uint64 addr)
     
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
+}
+
+int
+wt(uint64 addr, uint64 addr1){
+  struct proc *np;
+  int havekids, pid;
+  struct proc *p = myproc();
+  acquire(&wait_lock);
+  struct rusage cptime;
+  for(;;){
+    havekids = 0;
+    for(np = proc; np< &proc[NPROC]; np++){
+      if(np->parent == p){
+        acquire(&np->lock);
+        havekids = 1;
+        if(np->state ==ZOMBIE){
+          pid = np->pid;
+          if(addr != 0 && copyout(p->pagetable, addr, (char *)&np->state,sizeof(np->state)) < 0) {
+            release(&np->lock);
+            release(&np->wait_lock);
+            return -1;
+          }
+          cptime.cputime = np->cputime;
+          if(addr1 != 0 && copyout(p->pagetable,addr1,(char *)&cptime, sizeof(cptime)) < 0){
+
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+        }
+      }
+    }
   }
 }
 
