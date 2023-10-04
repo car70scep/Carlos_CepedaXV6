@@ -3,7 +3,7 @@
 #include "kernel/stat.h"
 #include "kernel/pstat.h"
 #include "user/user.h"
-#include <sys/wait.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
