@@ -83,6 +83,7 @@ struct trapframe {
 // Per-process state
 struct proc {
   struct spinlock lock;
+  uint cputime;
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state
