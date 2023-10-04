@@ -3,11 +3,6 @@
 #include "kernel/stat.h"
 #include "kernel/pstat.h"
 #include "user/user.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #define MAXARGS 16
 
 int
@@ -23,22 +18,15 @@ main(int argc, char *argv[]){
    for(i = 1; i < argc; i++){
        newargv[i-1] = argv[i];
     }
-    newargv[argc-1] = NULL;
+    newargv[argc-1] = 0;
     start = uptime();
     rc = fork();
 
     if(rc == 0){
        exec(newargv[0], newargv);
-       perror("execvp");
-      exit(-1);
-    }else if (rc >0) > {
-     waitpid(rc,NULL,0);
+    }
+     wait2(0, &ru);
      elapsed = uptime() - start;
-      getrusage(RUSAGE_CHILDREN, &ru);
      printf("Elapsed Time: %d Ticks, CPU Time: %d Ticks, CPU Percentage: %d% \n", elapsed, ru.cputime, ru.cputime*100/elapsed);
      exit(0);
-}else {
-perror("fork");
-exit(-1);
-}
 }
