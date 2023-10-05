@@ -390,7 +390,7 @@ wait(uint64 addr)
   struct proc *p = myproc();
 
   acquire(&wait_lock);
-  struct  rusage cptime;
+  // struct  rusage cptime;
   
   for(;;){
     // Scan through table looking for exited children.
@@ -431,12 +431,12 @@ wait(uint64 addr)
 }
 
 int
-wt(uint64 addr, uint64 addr1){
+wait2(uint64 addr, uint64 addr1){
   struct proc *np;
-  int havekids, pid;
+  int havekids;
   struct proc *p = myproc();
   acquire(&wait_lock);
-  struct rusage cptime;
+  // struct rusage cptime;
   for(;;){
     havekids = 0;
     for(np = proc; np< &proc[NPROC]; np++){
