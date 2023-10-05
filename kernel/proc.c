@@ -430,38 +430,38 @@ wait(uint64 addr)
   }
 }
 
-int
-wait2(uint64 addr, uint64 addr1){
-  struct proc *np;
-  int havekids;
-  struct proc *p = myproc();
-  acquire(&wait_lock);
-  // struct rusage cptime;
-  for(;;){
-    havekids = 0;
-    for(np = proc; np< &proc[NPROC]; np++){
-      if(np->parent == p){
-        acquire(&np->lock);
-        havekids = 1;
-        if(np->state ==ZOMBIE){
-          pid = np->pid;
-          if(addr != 0 && copyout(p->pagetable, addr, (char *)&np->state,sizeof(np->state)) < 0) {
-            release(&np->lock);
-            release(&np->wait_lock);
-            return -1;
-          }
-          cptime.cputime = np->cputime;
-          if(addr1 != 0 && copyout(p->pagetable,addr1,(char *)&cptime, sizeof(cptime)) < 0){
+// int
+// wait2(uint64 addr, uint64 addr1){
+//   struct proc *np;
+//   int havekids;
+//   struct proc *p = myproc();
+//   acquire(&wait_lock);
+//   // struct rusage cptime;
+//   for(;;){
+//     havekids = 0;
+//     for(np = proc; np< &proc[NPROC]; np++){
+//       if(np->parent == p){
+//         acquire(&np->lock);
+//         havekids = 1;
+//         if(np->state ==ZOMBIE){
+//           pid = np->pid;
+//           if(addr != 0 && copyout(p->pagetable, addr, (char *)&np->state,sizeof(np->state)) < 0) {
+//             release(&np->lock);
+//             release(&np->wait_lock);
+//             return -1;
+//           }
+//           cptime.cputime = np->cputime;
+//           if(addr1 != 0 && copyout(p->pagetable,addr1,(char *)&cptime, sizeof(cptime)) < 0){
 
-            release(&np->lock);
-            release(&wait_lock);
-            return -1;
-          }
-        }
-      }
-    }
-  }
-}
+//             release(&np->lock);
+//             release(&wait_lock);
+//             return -1;
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
