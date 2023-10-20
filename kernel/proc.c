@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "pstat.h"
 #include "defs.h"
+#include "syscall.h"
+#define MAXEFFPRIORITY 99
 
 struct cpu cpus[NCPU];
 
@@ -106,7 +108,6 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
-
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -118,6 +119,7 @@ allocproc(void)
   return 0;
 
 found:
+  p->cputime = 0;
   p->pid = allocpid();
   p->state = USED;
 
@@ -242,9 +244,8 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-
   p->state = RUNNABLE;
-
+  p->readytime = sys_uptime();
   release(&p->lock);
 }
 
@@ -314,6 +315,7 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+  np->readytime = sys_uptime();
   release(&np->lock);
 
   return pid;
@@ -428,6 +430,63 @@ wait(uint64 addr)
   }
 }
 
+int
+wait2(uint64 addr, uint64 addr1)
+{
+  struct proc *np;
+  int havekids, pid;
+  struct proc *p = myproc();
+  acquire(&wait_lock);
+  struct rusage cptime;
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(np = proc; np < &proc[NPROC]; np++){
+      if(np->parent == p){
+        // make sure the child isn't still in exit() or swtch().
+        acquire(&np->lock);
+        havekids = 1;
+        if(np->state == ZOMBIE){
+          // Found one.
+          pid = np->pid;
+          
+          if(addr != 0 && copyout(p->pagetable, addr, (char *)&np->xstate,
+                                  sizeof(np->xstate)) < 0) {
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          //Sets cputime from process so it can be copied into addr1 which
+          //Is a pointer we sent in from User land
+          cptime.cputime = np->cputime;
+          //IF use passes in a pointer copy out the values in the address
+          if(addr1 != 0 && copyout(p->pagetable, addr1, (char *)&cptime,
+                                  sizeof(cptime)) < 0) {
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          
+          freeproc(np);
+          release(&np->lock);
+          release(&wait_lock);
+          return pid;
+        }
+        release(&np->lock);
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || p->killed){
+      release(&wait_lock);
+      return -1;
+    }
+    
+    // Wait for a child to exit.
+    sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -435,17 +494,20 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+int min(int a, int b){
+return (a< b) ? a : b;
+}
 void
 scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+  int val = 1;
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
+    if(val == 0){
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -462,9 +524,39 @@ scheduler(void)
       }
       release(&p->lock);
     }
+    }
+    
+    //Priority Schedu
+    else{
+    int topPrio = -100;
+    struct proc *aProc = proc;
+        for(p = proc; p < &proc[NPROC]; p++) {
+        int effective_priority = 0;
+        effective_priority = minPrio(MAXEFFPRIORITY, p->priority + (sys_uptime() - p->readytime)); 
+        if(p->priority>topPrio && p->state == RUNNABLE){
+        	topPrio = p->priority;
+        	aProc = p;
+        }
+        p->priority = effective_priority;
+      	}
+              	acquire(&tempP->lock);
+        	aProc->state = RUNNING;
+        	aProc->priority = tempP->priority%2; // reset priority after time slice
+        	c->proc = tempP;
+        	swtch(&c->context, &tempP->context);
+        	// Process is done running for now.
+        	// It should have changed its p->state before coming back.
+        	c->proc = 0;
+      	release(&tempP->lock);
+      }
+    }
   }
+int minPrio(int a, int b){
+	if(a>b){
+return a;}
+else{
+return b;}
 }
-
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
@@ -499,6 +591,7 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  p->readytime = sys_uptime();
   sched();
   release(&p->lock);
 }
@@ -567,6 +660,7 @@ wakeup(void *chan)
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
         p->state = RUNNABLE;
+  	p->readytime = sys_uptime();
       }
       release(&p->lock);
     }
@@ -587,7 +681,8 @@ kill(int pid)
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().
-        p->state = RUNNABLE;
+  	p->state = RUNNABLE;
+  	p->readytime = sys_uptime();
       }
       release(&p->lock);
       return 0;
@@ -672,6 +767,8 @@ procinfo(uint64 addr)
     procinfo.pid = p->pid;
     procinfo.state = p->state;
     procinfo.size = p->sz;
+    procinfo.priority = p->priority;
+    procinfo.readytime = p->readytime;
     if (p->parent)
       procinfo.ppid = (p->parent)->pid;
     else
@@ -683,4 +780,35 @@ procinfo(uint64 addr)
     addr += sizeof(procinfo);
   }
   return nprocs;
+}
+
+// Fill in user-provided array with info for current processes
+// Return the number of processes found
+int
+getpriority(uint64 addr)
+{
+  struct proc *thisproc = myproc();
+  struct ruprio priority;
+  int pid;
+  pid = thisproc->pid;
+  priority.priority = thisproc->priority;
+   if (addr != 0 && copyout(thisproc->pagetable, addr, (char *)&priority, sizeof(priority)) < 0){
+      return -1;
+  }
+  return pid;
+}
+
+int
+setpriority(uint64 addr)
+{
+  struct proc *thisproc = myproc();
+  int pid;
+  pid = thisproc->pid;
+  int *temp =0;
+   if (addr != 0){
+   //either_copyin(void *dst, int user_src, uint64 src, uint64 len)
+   either_copyin(temp,1,addr,8);
+   thisproc->priority = *temp;
+  }
+  return pid;
 }
