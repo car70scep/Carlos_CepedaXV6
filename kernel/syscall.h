@@ -23,3 +23,9 @@
 #define SYS_getprocs  22
 #define SYS_free 23
 #define SYS_freepmem 24
+#define SYS_private  25
+#define SYS_mmap   26
+#define SYS_munmap  27
+#define SYS_prodcons1  28
+#define SYS_prodcons2  29
+#define SYS_prodcons3  30
