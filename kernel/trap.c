@@ -33,63 +33,12 @@ trapinithart(void)
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
 //
-// void
-// usertrap(void)
-// {
-//   int which_dev = 0;
-
-//   if((r_sstatus() & SSTATUS_SPP) != 0)
-//     panic("usertrap: not from user mode");
-
-//   // send interrupts and exceptions to kerneltrap(),
-//   // since we're now in the kernel.
-//   w_stvec((uint64)kernelvec);
-
-//   struct proc *p = myproc();
-  
-//   // save user program counter.
-//   p->trapframe->epc = r_sepc();
-  
-//   if(r_scause() == 8){
-//     // system call
-
-//     if(p->killed)
-//       exit(-1);
-
-//     // sepc points to the ecall instruction,
-//     // but we want to return to the next instruction.
-//     p->trapframe->epc += 4;
-
-//     // an interrupt will change sstatus &c registers,
-//     // so don't enable until done with those registers.
-//     intr_on();
-
-//     syscall();
-//   } else if((which_dev = devintr()) != 0){
-//     // ok
-//   } else {
-//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-//     p->killed = 1;
-//   }
-
-//   if(p->killed)
-//     exit(-1);
-
-//   // give up the CPU if this is a timer interrupt.
-//   if(which_dev == 2)
-//     yield();
-
-//   usertrapret();
-
-// }
-
 void
 usertrap(void)
 {
   int which_dev = 0;
 
-  if ((r_sstatus() & SSTATUS_SPP) != 0)
+  if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
 
   // send interrupts and exceptions to kerneltrap(),
@@ -101,10 +50,10 @@ usertrap(void)
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
-  if (r_scause() == 8) {
+  if(r_scause() == 8){
     // system call
 
-    if (p->killed)
+    if(p->killed)
       exit(-1);
 
     // sepc points to the ecall instruction,
@@ -116,44 +65,95 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if ((which_dev = devintr()) != 0) {
+  } else if((which_dev = devintr()) != 0){
     // ok
-  } else if (r_scause() == 13 || r_scause() == 15) {
-    // Load or store fault
-    uint64 faulting_addr = r_stval();
-
-    // Check if the faulting address is within the process's allocated virtual memory
-    if (faulting_addr >= p->sz && faulting_addr < TRAPFRAME) {
-      // Allocate physical memory frame
-      char *mem = kalloc();
-      if (mem == 0) {
-        p->killed = 1;
-      }
-
-      // Install page table mapping
-      if (mappages(p->pagetable, PGROUNDDOWN(faulting_addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
-        kfree(mem);  // Free allocated memory on failure
-        p->killed = 1;
-      }
-
-      // Continue the user program
-      return;
-    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
   }
 
-  if (p->killed)
+  if(p->killed)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if (which_dev == 2)
+  if(which_dev == 2)
     yield();
 
   usertrapret();
+
 }
+
+// void
+// usertrap(void)
+// {
+//   int which_dev = 0;
+
+//   if ((r_sstatus() & SSTATUS_SPP) != 0)
+//     panic("usertrap: not from user mode");
+
+//   // send interrupts and exceptions to kerneltrap(),
+//   // since we're now in the kernel.
+//   w_stvec((uint64)kernelvec);
+
+//   struct proc *p = myproc();
+  
+//   // save user program counter.
+//   p->trapframe->epc = r_sepc();
+  
+//   if (r_scause() == 8) {
+//     // system call
+
+//     if (p->killed)
+//       exit(-1);
+
+//     // sepc points to the ecall instruction,
+//     // but we want to return to the next instruction.
+//     p->trapframe->epc += 4;
+
+//     // an interrupt will change sstatus &c registers,
+//     // so don't enable until done with those registers.
+//     intr_on();
+
+//     syscall();
+//   } else if ((which_dev = devintr()) != 0) {
+//     // ok
+//   } else if (r_scause() == 13 || r_scause() == 15) {
+//     // Load or store fault
+//     uint64 faulting_addr = r_stval();
+
+//     // Check if the faulting address is within the process's allocated virtual memory
+//     if (faulting_addr >= p->sz && faulting_addr < TRAPFRAME) {
+//       // Allocate physical memory frame
+//       char *mem = kalloc();
+//       if (mem == 0) {
+//         p->killed = 1;
+//       }
+
+//       // Install page table mapping
+//       if (mappages(p->pagetable, PGROUNDDOWN(faulting_addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
+//         kfree(mem);  // Free allocated memory on failure
+//         p->killed = 1;
+//       }
+
+//       // Continue the user program
+//       return;
+//     }
+//   } else {
+//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+//     p->killed = 1;
+//   }
+
+//   if (p->killed)
+//     exit(-1);
+
+//   // give up the CPU if this is a timer interrupt.
+//   if (which_dev == 2)
+//     yield();
+
+//   usertrapret();
+// }
 
 
 // void
