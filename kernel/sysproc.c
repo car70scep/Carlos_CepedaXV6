@@ -69,13 +69,21 @@ sys_sbrk(void)
     p->sz += n;
   } else if (n < 0) {
     // Decrease virtual memory space
-    if (p->sz + n < p->sz)
-      return -1;
-    p->sz += n;
+    uint64 new_sz = p->sz + n;
+
+    if (new_sz < p->sz)  // Check for underflow
+      return -1; // Error: trying to decrease too much
+
+    // Unmap the memory regions that are no longer part of the address space
+    if (deallocuvm(p->pgdir, new_sz, p->sz) < 0)
+      return -1; // Error: failed to deallocate memory
+
+    p->sz = new_sz;
   }
 
   return p->sz;
 }
+
 
 
 
