@@ -54,7 +54,7 @@ sys_wait(void)
 //   return addr;
 // }
 
-uint64 sys_sbrk(void)
+int sys_sbrk(void)
 {
   int n;
 
@@ -62,26 +62,14 @@ uint64 sys_sbrk(void)
     return -1;
 
   struct proc *p = myproc();
+  uint sz = p->sz;
 
-  if (n > 0) {
-    // Increase virtual memory space
-    p->sz += n;
-  } else if (n < 0) {
-    // Decrease virtual memory space
-    uint64 new_sz = p->sz + n;
+  // Update the size directly without allocating physical memory
+  p->sz += n;
 
-    if (new_sz < p->sz)  // Check for underflow
-      return -1; // Error: trying to decrease too much
-
-    // Unmap the memory regions that are no longer part of the address space
-    if (uvmdealloc(p->pagetable, new_sz, p->sz) < 0)  // Fix: swap oldsz and newsz
-      return -1; // Error: failed to deallocate memory
-
-    p->sz = new_sz;
-  }
-
-  return (uint64)p->sz;
+  return sz;
 }
+
 
 
 
