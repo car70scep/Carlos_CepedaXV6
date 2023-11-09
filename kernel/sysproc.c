@@ -112,7 +112,7 @@ sys_getprocs(void)
 
 
 uint64
-sys_freepmen(void){
+sys_freepmem(void){
   int count = kfreepagecount();
   return count*PGSIZE;
 }
