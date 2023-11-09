@@ -175,9 +175,9 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     
     if(*pte & PTE_V) {
       // Debugging: Print information about the remap
-      cprintf("mappages: remap detected at va 0x%x\n", a);
-      cprintf("Existing pte value: 0x%x\n", *pte);
-      cprintf("Attempting to map pa 0x%x\n", pa);
+      printf("mappages: remap detected at va 0x%x\n", a);
+      printf("Existing pte value: 0x%x\n", *pte);
+      printf("Attempting to map pa 0x%x\n", pa);
       panic("mappages: remap");
     }
 
