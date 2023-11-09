@@ -193,7 +193,7 @@ usertrap(void)
   } else if(r_scause() == 0xf){
 
     addr = r_stval();
-    if(addr >= p -> sz){
+    if(addr < p -> sz){
       // Allocate a physical memory frame and install the page table mapping
       char *mem = kalloc();
       if (mem == 0) {
