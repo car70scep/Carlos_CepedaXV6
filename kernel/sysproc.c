@@ -58,16 +58,24 @@ uint64
 sys_sbrk(void)
 {
   int n;
+
   if (argint(0, &n) < 0)
     return -1;
-  
+
   struct proc *p = myproc();
-  int old_sz = p->sz;
 
-  p->sz += n;
+  if (n > 0) {
+    // Increase virtual memory space
+    p->sz += n;
+  } else if (n < 0) {
+    // Decrease virtual memory space
+    p->sz += n;
+  }
 
-  return old_sz;
+  return p->sz;
 }
+
+
 
 uint64
 sys_sleep(void)
