@@ -159,66 +159,35 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 //   return 0;
 // }
 
-int
-mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
-{
-  uint64 a, last;
-  pte_t *pte;
 
-  if(size == 0)
-    panic("mappages: size");
-
-  a = PGROUNDDOWN(va);
-  last = PGROUNDDOWN(va + size - 1);
-  for(;;){
-    if((pte = walk(pagetable, a, 1)) == 0)
-      return -1;
-
-    // Check if the page is already mapped
-    if (*pte & PTE_V) {
-      // You may want to handle this case based on your requirements
-      return -1; // Error: Page already mapped
-    }
-
-    *pte = PA2PTE(pa) | perm | PTE_V;
-
-    if(a == last)
-      break;
-
-    a += PGSIZE;
-    pa += PGSIZE;
-  }
-
-  return 0;
-}
 
 
 // Remove npages of mappings starting from va. va must be
 // page-aligned. The mappings must exist.
 // Optionally free the physical memory.
-// void
-// uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
-// {
-//   uint64 a;
-//   pte_t *pte;
+void
+uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
+{
+  uint64 a;
+  pte_t *pte;
 
-//   if((va % PGSIZE) != 0)
-//     panic("uvmunmap: not aligned");
+  if((va % PGSIZE) != 0)
+    panic("uvmunmap: not aligned");
 
-//   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-//     if((pte = walk(pagetable, a, 0)) == 0)
-//        panic("uvmunmap: walk");
-//     if((*pte & PTE_V) == 0)
-//       panic("uvmunmap: not mapped");
-//     if(PTE_FLAGS(*pte) == PTE_V)
-//       panic("uvmunmap: not a leaf");
-//     if(do_free){
-//       uint64 pa = PTE2PA(*pte);
-//       kfree((void*)pa);
-//     }
-//     *pte = 0;
-//   }
-// }
+  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    if((pte = walk(pagetable, a, 0)) == 0)
+       panic("uvmunmap: walk");
+    if((*pte & PTE_V) == 0)
+      panic("uvmunmap: not mapped");
+    if(PTE_FLAGS(*pte) == PTE_V)
+      panic("uvmunmap: not a leaf");
+    if(do_free){
+      uint64 pa = PTE2PA(*pte);
+      kfree((void*)pa);
+    }
+    *pte = 0;
+  }
+}
 // void
 // uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 // {
