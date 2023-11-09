@@ -62,10 +62,11 @@ sys_sbrk(void)
     return -1;
   
   struct proc *p = myproc();
+  int old_sz = p->sz;
 
   p->sz += n;
 
-  return p->sz - n;
+  return old_sz;
 }
 
 uint64
