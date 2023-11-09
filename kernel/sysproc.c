@@ -62,12 +62,11 @@ uint64 sys_sbrk(void)
     return -1;
 
   struct proc *p = myproc();
-  uint sz = p->sz;
+  if(n<0 && p->sz +n < p->sz)
+    return -1;
 
-  // Update the size directly without allocating physical memory
   p->sz += n;
-
-  return sz;
+  return p->sz - n;
 }
 
 
