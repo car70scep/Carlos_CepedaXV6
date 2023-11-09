@@ -75,7 +75,7 @@ sys_sbrk(void)
       return -1; // Error: trying to decrease too much
 
     // Unmap the memory regions that are no longer part of the address space
-    if (deallocuvm(p->pgdir, new_sz, p->sz) < 0)
+    if (uvmdealloc(p->pgdir, new_sz, p->sz) < 0)
       return -1; // Error: failed to deallocate memory
 
     p->sz = new_sz;
