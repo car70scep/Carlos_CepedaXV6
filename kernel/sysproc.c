@@ -62,7 +62,7 @@ uint64 sys_sbrk(void)
     return -1;
 
   struct proc *p = myproc();
-  if(n<0 && p->sz +n < p->sz)
+  if(n < 0 && p->sz + n < p->sz)
     return -1;
 
   p->sz += n;
