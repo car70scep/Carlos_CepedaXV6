@@ -55,6 +55,22 @@ sys_wait(void)
 // }
 
 //HW4 Task 2
+// uint64 sys_sbrk(void)
+// {
+//   int n;
+
+//   if (argint(0, &n) < 0)
+//     return -1;
+
+//   struct proc *p = myproc();
+  
+//   if(n < 0 && p->sz + n < p->sz)
+//     return -1;
+
+//   p->sz += n;
+//   return p->sz - n;
+// }
+
 uint64 sys_sbrk(void)
 {
   int n;
@@ -64,10 +80,11 @@ uint64 sys_sbrk(void)
 
   struct proc *p = myproc();
   
-  if(n < 0 && p->sz + n < p->sz)
+  uint64 newsz = p->sz + n;
+  if(newsz < p->sz || newsz >= TRAPFRAME){
     return -1;
-
-  p->sz += n;
+  }
+  p->sz = newsz;
   return p->sz - n;
 }
 
