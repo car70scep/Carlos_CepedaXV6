@@ -179,6 +179,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       printf("Existing pte value: 0x%x\n", *pte);
       printf("Attempting to map pa 0x%x\n", pa);
       panic("mappages: remap");
+      continue;
     }
 
     *pte = PA2PTE(pa) | perm | PTE_V;
