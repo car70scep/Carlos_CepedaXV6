@@ -134,6 +134,31 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 // physical addresses starting at pa. va and size might not
 // be page-aligned. Returns 0 on success, -1 if walk() couldn't
 // allocate a needed page-table page.
+// int
+// mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+// {
+//   uint64 a, last;
+//   pte_t *pte;
+
+//   if(size == 0)
+//     panic("mappages: size");
+  
+//   a = PGROUNDDOWN(va);
+//   last = PGROUNDDOWN(va + size - 1);
+//   for(;;){
+//     if((pte = walk(pagetable, a, 1)) == 0)
+//       return -1;
+//     if(*pte & PTE_V)
+//       panic("mappages: remap");
+//     *pte = PA2PTE(pa) | perm | PTE_V;
+//     if(a == last)
+//       break;
+//     a += PGSIZE;
+//     pa += PGSIZE;
+//   }
+//   return 0;
+// }
+
 int
 mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 {
@@ -142,22 +167,31 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 
   if(size == 0)
     panic("mappages: size");
-  
+
   a = PGROUNDDOWN(va);
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
-    if(*pte & PTE_V)
-      panic("mappages: remap");
+
+    // Check if the page is already mapped
+    if (*pte & PTE_V) {
+      // You may want to handle this case based on your requirements
+      return -1; // Error: Page already mapped
+    }
+
     *pte = PA2PTE(pa) | perm | PTE_V;
+
     if(a == last)
       break;
+
     a += PGSIZE;
     pa += PGSIZE;
   }
+
   return 0;
 }
+
 
 // Remove npages of mappings starting from va. va must be
 // page-aligned. The mappings must exist.
@@ -209,34 +243,34 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 //   }
 // }
 
-// void
-// uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
-// {
-//   uint64 a;
-//   pte_t *pte;
+void
+uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
+{
+  uint64 a;
+  pte_t *pte;
 
-//   if((va % PGSIZE) != 0)
-//     panic("uvmunmap: not aligned");
+  if((va % PGSIZE) != 0)
+    panic("uvmunmap: not aligned");
 
-//   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-//     // Use walk(pagetable, a, 1) instead of walk(pagetable, a, 0)
-//     if((pte = walk(pagetable, a, 1)) == 0) {
-//       // If the page is not mapped, just continue without panicking
-//       continue;
-//     }
+  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    // Use walk(pagetable, a, 1) instead of walk(pagetable, a, 0)
+    if((pte = walk(pagetable, a, 1)) == 0) {
+      // If the page is not mapped, just continue without panicking
+      continue;
+    }
 
-//     // Check if the PTE is a leaf node
-//     if((*pte & PTE_V) == 0) {
-//       panic("uvmunmap: not a leaf");
-//     }
+    // Check if the PTE is a leaf node
+    if((*pte & PTE_V) == 0) {
+      panic("uvmunmap: not a leaf");
+    }
 
-//     if(do_free){
-//       uint64 pa = PTE2PA(*pte);
-//       kfree((void*)pa);
-//     }
-//     *pte = 0;
-//   }
-// }
+    if(do_free){
+      uint64 pa = PTE2PA(*pte);
+      kfree((void*)pa);
+    }
+    *pte = 0;
+  }
+}
 
 
 
