@@ -162,6 +162,30 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 // Remove npages of mappings starting from va. va must be
 // page-aligned. The mappings must exist.
 // Optionally free the physical memory.
+// void
+// uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
+// {
+//   uint64 a;
+//   pte_t *pte;
+
+//   if((va % PGSIZE) != 0)
+//     panic("uvmunmap: not aligned");
+
+//   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+//     if((pte = walk(pagetable, a, 0)) == 0)
+//       panic("uvmunmap: walk");
+//     if((*pte & PTE_V) == 0)
+//       panic("uvmunmap: not mapped");
+//     if(PTE_FLAGS(*pte) == PTE_V)
+//       panic("uvmunmap: not a leaf");
+//     if(do_free){
+//       uint64 pa = PTE2PA(*pte);
+//       kfree((void*)pa);
+//     }
+//     *pte = 0;
+//   }
+// }
+
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
@@ -172,12 +196,17 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     panic("uvmunmap: not aligned");
 
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-    if((pte = walk(pagetable, a, 0)) == 0)
-      panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
-      panic("uvmunmap: not mapped");
-    if(PTE_FLAGS(*pte) == PTE_V)
+    // Use walk(pagetable, a, 1) instead of walk(pagetable, a, 0)
+    if((pte = walk(pagetable, a, 1)) == 0) {
+      // If the page is not mapped, just continue without panicking
+      continue;
+    }
+
+    // Check if the PTE is a leaf node
+    if(PTE_FLAGS(*pte) != PTE_V) {
       panic("uvmunmap: not a leaf");
+    }
+
     if(do_free){
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
@@ -186,35 +215,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   }
 }
 
-int
-uvmcopy(pagetable_t old, pagetable_t new, uint64 start, uint64 end)
-{
-  pte_t *pte;
-  uint64 pa, i;
-  uint flags;
-  char *mem;
 
-  for(i = start; i < end; i += PGSIZE){
-    if((pte = walk(old, i, 0)) == 0)
-      panic("uvmcopy: pte should exist");
-    if((*pte & PTE_V) == 0)
-      panic("uvmcopy: page not present");
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
-      goto err;
-    }
-  }
-  return 0;
-
- err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
-  return -1;
-}
 
 // create an empty user page table.
 // returns 0 if out of memory.
