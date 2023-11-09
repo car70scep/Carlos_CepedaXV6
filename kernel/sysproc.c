@@ -69,6 +69,8 @@ sys_sbrk(void)
     p->sz += n;
   } else if (n < 0) {
     // Decrease virtual memory space
+    if (p->sz + n < p->sz)
+      return -1;
     p->sz += n;
   }
 
