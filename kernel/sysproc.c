@@ -40,34 +40,42 @@ sys_wait(void)
   return wait(p);
 }
 
-uint64
-sys_sbrk(void)
-{
-  int addr;
-  int n;
-
-  if(argint(0, &n) < 0)
-    return -1;
-  addr = myproc()->sz;
-  if(growproc(n) < 0)
-    return -1;
-  return addr;
-}
-
-// uint64 sys_sbrk(void)
+// uint64
+// sys_sbrk(void)
 // {
+//   int addr;
 //   int n;
 
-//   if (argint(0, &n) < 0)
+//   if(argint(0, &n) < 0)
 //     return -1;
-
-//   struct proc *p = myproc();
-//   if(n < 0 && p->sz + n < p->sz)
+//   addr = myproc()->sz;
+//   if(growproc(n) < 0)
 //     return -1;
-
-//   p->sz += n;
-//   return p->sz - n;
+//   return addr;
 // }
+
+uint64 sys_sbrk(void)
+{
+  int n;
+
+  if (argint(0, &n) < 0)
+    return -1;
+
+  struct proc *p = myproc();
+  uint64 oldsz = p->sz;
+
+  if(n < 0 && oldsz + n < oldsz)
+    return -1;
+
+  p->sz += n;
+
+  // Unmap the pages if shrinking
+  if (n < 0) {
+    uvmunmap(p->pagetable, p->sz, -n / PGSIZE, 1);
+  }
+
+  return oldsz;
+}
 
 
 
