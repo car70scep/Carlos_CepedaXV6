@@ -203,7 +203,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     }
 
     // Check if the PTE is a leaf node
-    if(PTE_FLAGS(*pte) != PTE_V) {
+    if((PTE_FLAGS(*pte) & PTE_V) == 0) {
       panic("uvmunmap: not a leaf");
     }
 
@@ -214,6 +214,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     *pte = 0;
   }
 }
+
 
 
 
