@@ -54,6 +54,7 @@ sys_wait(void)
 //   return addr;
 // }
 
+//HW4 Task 2
 uint64 sys_sbrk(void)
 {
   int n;
@@ -62,24 +63,13 @@ uint64 sys_sbrk(void)
     return -1;
 
   struct proc *p = myproc();
-  uint64 oldsz = p->sz;
-
-  if(n < 0 && oldsz + n < oldsz)
+  
+  if(n < 0 && p->sz + n < p->sz)
     return -1;
 
   p->sz += n;
-
-  // Unmap the pages if shrinking
-  if (n < 0) {
-    uvmunmap(p->pagetable, p->sz, -n / PGSIZE, 1);
-  }
-
-  return oldsz;
+  return p->sz - n;
 }
-
-
-
-
 
 
 
