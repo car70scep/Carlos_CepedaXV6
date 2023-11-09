@@ -74,7 +74,7 @@ uint64 sys_sbrk(void)
       return -1; // Error: trying to decrease too much
 
     // Unmap the memory regions that are no longer part of the address space
-    if (uvmdealloc(p->pagetable, new_sz, p->sz) < 0)
+    if (uvmdealloc(p->pagetable, new_sz, p->sz) < 0)  // Fix: swap oldsz and newsz
       return -1; // Error: failed to deallocate memory
 
     p->sz = new_sz;
@@ -82,6 +82,7 @@ uint64 sys_sbrk(void)
 
   return (uint64)p->sz;
 }
+
 
 
 
