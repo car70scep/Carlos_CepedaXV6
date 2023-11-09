@@ -186,7 +186,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 //   }
 // }
 
-void
+int
 uvmunmap(pagetable_t old, pagetable_t new, uint64 start, uint64 end)
 {
   pte_t *pte;
