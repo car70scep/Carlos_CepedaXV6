@@ -212,38 +212,38 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 //   }
 // }
 
-void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
-{
-  uint64 a;
-  pte_t *pte;
+// void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
+// {
+//   uint64 a;
+//   pte_t *pte;
 
-  if ((va % PGSIZE) != 0)
-    panic("uvmunmap: not aligned");
+//   if ((va % PGSIZE) != 0)
+//     panic("uvmunmap: not aligned");
 
-  for (a = va; a < va + npages * PGSIZE; a += PGSIZE)
-  {
-    // Use walk(pagetable, a, 1) instead of walk(pagetable, a, 0)
-    if ((pte = walk(pagetable, a, 1)) == 0)
-    {
-      // If the page is not mapped, just continue without panicking
-      continue;
-    }
+//   for (a = va; a < va + npages * PGSIZE; a += PGSIZE)
+//   {
+//     // Use walk(pagetable, a, 1) instead of walk(pagetable, a, 0)
+//     if ((pte = walk(pagetable, a, 1)) == 0)
+//     {
+//       // If the page is not mapped, just continue without panicking
+//       continue;
+//     }
 
-    // Check if the PTE is a leaf node
-    if ((*pte & PTE_V))
-    {
-      // If PTE_V is not set or PTE_T is set, it's not a leaf node
-      panic("uvmunmap: not a leaf");
-    }
+//     // Check if the PTE is a leaf node
+//     if ((*pte & PTE_V))
+//     {
+//       // If PTE_V is not set or PTE_T is set, it's not a leaf node
+//       panic("uvmunmap: not a leaf");
+//     }
 
-    if (do_free)
-    {
-      uint64 pa = PTE2PA(*pte);
-      kfree((void *)pa);
-    }
-    *pte = 0;
-  }
-}
+//     if (do_free)
+//     {
+//       uint64 pa = PTE2PA(*pte);
+//       kfree((void *)pa);
+//     }
+//     *pte = 0;
+//   }
+// }
 
 
 
