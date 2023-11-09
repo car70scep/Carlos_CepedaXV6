@@ -54,8 +54,7 @@ sys_wait(void)
 //   return addr;
 // }
 
-uint64
-sys_sbrk(void)
+uint64 sys_sbrk(void)
 {
   int n;
 
@@ -81,7 +80,7 @@ sys_sbrk(void)
     p->sz = new_sz;
   }
 
-  return p->sz;
+  return (uint64)p->sz;
 }
 
 
