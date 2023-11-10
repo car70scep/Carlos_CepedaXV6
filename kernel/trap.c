@@ -204,7 +204,7 @@ usertrap(void)
         // Clear the allocated physical memory
         memset(mem, 0, PGSIZE);
         // Install the page table mapping for the faulting address
-        if (mappages(p->pagetable, addr, PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R) != 0) {
+        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
           // Handle mapping failure (panic, exit, etc.)
           printf("Failed to map memory\n");
           kfree(mem); // Free the allocated physical memory
