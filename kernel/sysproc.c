@@ -150,11 +150,11 @@ sys_getprocs(void)
 uint64
 sys_freepmem(void){
   int count = kfreepagecount();
-  return count*PGSIZE;
+  return count;
 }
 
 uint64
 sys_memuser(void){
   int count = kfreepagecount();
-  return count*PGSIZE;
+  return count;
 }

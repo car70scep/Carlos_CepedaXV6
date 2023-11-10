@@ -94,5 +94,5 @@ kfreepagecount(void){
     r = r->next;
   }
   release(&kmem.lock);
-  return count;
+  return count*PGSIZE;
 }
