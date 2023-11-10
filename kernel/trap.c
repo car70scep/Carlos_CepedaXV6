@@ -160,59 +160,34 @@ usertrap(void)
 {
   int which_dev = 0;
   uint64 addr;
-
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
-
-  // send interrupts and exceptions to kerneltrap(),
-  // since we're now in the kernel.
   w_stvec((uint64)kernelvec);
-
   struct proc *p = myproc();
-  
-  // save user program counter.
   p->trapframe->epc = r_sepc();
-  
   if(r_scause() == 8){
-    // system call
-
     if(p->killed)
       exit(-1);
-
-    // sepc points to the ecall instruction,
-    // but we want to return to the next instruction.
     p->trapframe->epc += 4;
-
-    // an interrupt will change sstatus &c registers,
-    // so don't enable until done with those registers.
     intr_on();
  syscall();
   } else if((which_dev = devintr()) != 0){
-    // ok
-    //ADDING CHANGES
   } else if(r_scause() == 0xf || r_scause() == 13){
-
     addr = r_stval();
     if(addr < p -> sz){
-      // Allocate a physical memory frame and install the page table mapping
       char *mem = kalloc();
       if (mem == 0) {
-        // Handle allocation failure (panic, exit, etc.)
         printf("Out of memory\n");
         p->killed = 1;
       } else {
-        // Clear the allocated physical memory
         memset(mem, 0, PGSIZE);
-        // Install the page table mapping for the faulting address
         if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
-          // Handle mapping failure (panic, exit, etc.)
           printf("Failed to map memory\n");
-          kfree(mem); // Free the allocated physical memory
+          kfree(mem); 
           p->killed = 1;
         }
       }
     }else{
-      // Invalid access, handle it as appropriate (panic, exit, etc.)
       printf("Invalid memory access at address %p\n", addr);
       p->killed = 1;
     }
@@ -223,8 +198,6 @@ usertrap(void)
   }
   if(p->killed)
     exit(-1);
-
-  // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
     yield();
 
