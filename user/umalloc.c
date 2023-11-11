@@ -67,7 +67,7 @@ malloc(uint nbytes)
   uint nunits;
   
 
-  // nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header) + 1;
+   nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header) + 1;
     uint total_units = (uint64) (freep->s.ptr) - (uint64) &base / sizeof(Header);
   if (nunits > total_units)
     nunits = total_units;
