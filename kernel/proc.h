@@ -135,10 +135,17 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  int cputime;			//CPUT TIME
+  uint   tsticks;             // Ticks accumulated in current time slice
+  int     priority;           // Scheduling priority (0 to NQUEUE-1) 
+  uint     timeslice;          // scheduling timeslice
+  int     yielded;          // 1 if this process yielded to a higher priority process before using its timeslice
+  struct proc *next;    // next process in scheduler queue
+  int  arrtime; //Task 4
 
   struct mmr mmr[MAX_MMR];     // Array of memory-mapped regions
   uint64 cur_max;                             // Max address of free virtual memory, 
-                                                            // initialize to MAXVA-2*PGSIZE
+        // initialize to MAXVA-2*PGSIZE
 
 };
 

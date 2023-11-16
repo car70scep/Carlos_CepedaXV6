@@ -168,7 +168,7 @@ freeproc(struct proc *p)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
   for (int i = 0; i < MAX_MMR; i++) {
-    dofree = 0;
+    int dofree = 0;
     if (p->mmr[i].valid == 1) {
       if (p->mmr[i].flags & MAP_PRIVATE)
         dofree = 1;
@@ -273,7 +273,7 @@ userinit(void)
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
-  p->cur_max = MAXVA–2*PGSIZE;
+  p->cur_max = MAXVA-2*PGSIZE;
 
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
