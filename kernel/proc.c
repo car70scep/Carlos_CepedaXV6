@@ -6,12 +6,25 @@
 #include "proc.h"
 #include "pstat.h"
 #include "defs.h"
+#include "stat.h"
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
 struct proc *initproc;
+
+struct mmr_list mmr_list[NPROC*MAX_MMR];
+struct spinlock listed_lock;
+struct spinlock listid_lock;
+
+
+int enqueue_at_tail(struct proc *p,int priority);
+int enqueue_at_head(struct proc *p,int priority);
+struct proc* dequeue(int priority);
+
+// struct queue queue[NQUEUE];
+// int sched_policy = MLFQ;  
 
 int nextpid = 1;
 struct spinlock pid_lock;
@@ -260,7 +273,7 @@ userinit(void)
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
-  p->cur_max = MAXVA – 2*PGSIZE;
+  p->cur_max = MAXVA–2*PGSIZE;
 
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
