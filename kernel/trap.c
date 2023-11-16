@@ -33,6 +33,56 @@ trapinithart(void)
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
 //
+// void
+// usertrap(void)
+// {
+//   int which_dev = 0;
+
+//   if((r_sstatus() & SSTATUS_SPP) != 0)
+//     panic("usertrap: not from user mode");
+
+//   // send interrupts and exceptions to kerneltrap(),
+//   // since we're now in the kernel.
+//   w_stvec((uint64)kernelvec);
+
+//   struct proc *p = myproc();
+  
+//   // save user program counter.
+//   p->trapframe->epc = r_sepc();
+  
+//   if(r_scause() == 8){
+//     // system call
+
+//     if(p->killed)
+//       exit(-1);
+
+//     // sepc points to the ecall instruction,
+//     // but we want to return to the next instruction.
+//     p->trapframe->epc += 4;
+
+//     // an interrupt will change sstatus &c registers,
+//     // so don't enable until done with those registers.
+//     intr_on();
+
+//     syscall();
+//   } else if((which_dev = devintr()) != 0){
+//     // ok
+//   } else {
+//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+//     p->killed = 1;
+//   }
+
+//   if(p->killed)
+//     exit(-1);
+
+//   // give up the CPU if this is a timer interrupt.
+//   if(which_dev == 2)
+//     yield();
+
+//   usertrapret();
+// }
+
 void
 usertrap(void)
 {
@@ -65,6 +115,34 @@ usertrap(void)
     intr_on();
 
     syscall();
+    //Here I start doing Lab 3 Task 2 Code
+
+  } else if(r_scause()==13||r_scause()==15){
+     uint64 fault_addr = r_stval();
+    for(int i = 0; i < MAX_MMR; i++){
+    if(p->mmr[i].valid == 1){
+      if((fault_addr >= p->mmr[i].addr) && (fault_addr < p->mmr[i].addr + p->mmr[i].length)){
+        if(r_scause() == 13 && (p->mmr[i].prot & PTE_R)){ 
+          //Load Faults - Read
+          memset(kalloc(), 0, PGSIZE);
+          if(mappages(p->pagetable, PGROUNDDOWN(fault_addr), PGSIZE, (uint64)kalloc(), p->mmr[i].prot | PTE_U) < 0){
+            p->killed = 1;
+            exit(-1);
+          }
+        }
+        if(r_scause() == 15 && (p->mmr[i].prot & PTE_W)){ 
+          //Store Faults - Write
+          memset(kalloc(), 0, PGSIZE);
+          if(mappages(p->pagetable, PGROUNDDOWN(fault_addr), PGSIZE, (uint64)kalloc(), p->mmr[i].prot | PTE_U) < 0){
+            p->killed = 1;
+            exit(-1);
+                                        }
+          }
+        }
+      }
+    }
+    //Here it finishes
+
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
@@ -77,8 +155,25 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
+  if(which_dev == 2){
+    p->cputime++; //Christian Gomez: Increment CPU time
+    p->tsticks++; //Christian Gomez Task 4
+   // yield();
+
+    //Christian Gomez Task 4 -> usertrap() method
+   if(p->tsticks >= timeslice(p->priority)){
+        if(p->priority == HIGH){
+           p->priority = MEDIUM;
+           yield();
+         }else if(p->priority == MEDIUM){
+           p->priority = LOW;
+           yield();
+         }else{
+           p->priority = LOW;
+           yield();
+         }
+    }//if
+  }
 
   usertrapret();
 }
