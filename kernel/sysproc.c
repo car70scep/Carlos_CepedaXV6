@@ -7,7 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 
-uint64 kfreepagecount(void);
+
 
 uint64
 sys_exit(void)
@@ -108,19 +108,4 @@ sys_getprocs(void)
   if (argaddr(0, &addr) < 0)
     return -1;
   return(procinfo(addr));
-}
-
-sys_wait2(void){
-  uint64 p1, p2;
-  if(argaddr(0, &p1) < 0 || argaddr(1, &p2) < 0){
-	return -1;
-  }
-  return wait2(p1, p2);
-}
-
-
-uint64
-sys_freepmem(void){
-  int count = kfreepagecount();
-  return count*PGSIZE;
 }
