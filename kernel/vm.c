@@ -432,3 +432,27 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+int
+mapvpages(pagetable_t pagetable, uint64 va, uint64 size)
+{
+  uint64 a, last;
+  pte_t *pte;
+
+  if(size == 0)
+    panic("mappages: size");
+
+  a = PGROUNDDOWN(va);
+  last = PGROUNDDOWN(va + size - 1);
+  for(;;){
+    if((pte = walk(pagetable, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_V)
+      panic("mappages: remap");
+    if(a == last)
+      break;
+    a += PGSIZE;
+  }
+  return 0;
+}
+
