@@ -213,11 +213,13 @@ usertrap(void)
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
 
-
+  // send interrupts and exceptions to kerneltrap(),
+  // since we're now in the kernel.
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
- 
+  
+  // save user program counter.
   p->trapframe->epc = r_sepc();
   
   if(r_scause() == 8){
@@ -235,7 +237,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-
+    //Here I start doing Lab 3 Task 2 Code
 
   } else if(r_scause()==13||r_scause()==15){
      uint64 fault_addr = r_stval();
@@ -243,7 +245,7 @@ usertrap(void)
     if(p->mmr[i].valid == 1){
       if((fault_addr >= p->mmr[i].addr) && (fault_addr < p->mmr[i].addr + p->mmr[i].length)){
         if(r_scause() == 13 && (p->mmr[i].prot & PTE_R)){ 
-
+          //Load Faults - Read
           memset(kalloc(), 0, PGSIZE);
           if(mappages(p->pagetable, PGROUNDDOWN(fault_addr), PGSIZE, (uint64)kalloc(), p->mmr[i].prot | PTE_U) < 0){
             p->killed = 1;
@@ -274,11 +276,13 @@ usertrap(void)
   if(p->killed)
     exit(-1);
 
-
+  // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
-    p->cputime++; 
-    p->tsticks++; 
+    p->cputime++; //Christian Gomez: Increment CPU time
+    p->tsticks++; //Christian Gomez Task 4
+   // yield();
 
+    //Christian Gomez Task 4 -> usertrap() method
    if(p->tsticks >= timeslice(p->priority)){
         if(p->priority == HIGH){
            p->priority = MEDIUM;
@@ -295,7 +299,6 @@ usertrap(void)
 
   usertrapret();
 }
-
 //
 // return to user space
 //
