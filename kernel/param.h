@@ -15,5 +15,7 @@
 #define HIGH         0    // High priority for scheduling
 #define MEDIUM       1
 #define LOW          2
-
+#define TSTICKSHIGH  1    // ticks per time slice for HIGH queue
+#define TSTICKSMEDIUM 50    // ticks per time slice for MEDIUM queue 1)50
+#define TSTICKSLOW    200   // ticks per time slice for LOW queue
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };

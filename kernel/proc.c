@@ -154,6 +154,20 @@ found:
   return p;
 }
 
+int timeslice(int priority)
+{
+   if (priority == HIGH)
+     return(TSTICKSHIGH);
+   else if (priority == MEDIUM)
+     return(TSTICKSMEDIUM);
+   else if (priority == LOW)
+     return(TSTICKSLOW);
+   else {
+     printf("timeslice: invalid priority %d\n", priority);
+     return(-1);
+   }
+}
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
