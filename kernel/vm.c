@@ -184,16 +184,16 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
             // In this example, we simply update the existing mapping
             *pte = PA2PTE(pa) | perm | PTE_V;
         }
-        // else
-        // {
-        //     // Additional error checking for permissions
-        //     // if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
-        //     // {
-        //     //     panic("mappages: invalid permissions");
-        //     // }
+        else
+        {
+            // Additional error checking for permissions
+            if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
+            {
+                panic("mappages: invalid permissions");
+            }
 
-        //     *pte = PA2PTE(pa) | perm | PTE_V;
-        // }
+            *pte = PA2PTE(pa) | perm | PTE_V;
+        }
 
         if (a == last)
             break;
