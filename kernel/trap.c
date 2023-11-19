@@ -205,54 +205,68 @@ trapinithart(void)
 // }
 
 
-void
-usertrap(void)
-{
-  int which_dev = 0;
-  uint64 addr;
-  if((r_sstatus() & SSTATUS_SPP) != 0)
-    panic("usertrap: not from user mode");
-  w_stvec((uint64)kernelvec);
-  struct proc *p = myproc();
-  p->trapframe->epc = r_sepc();
-  if(r_scause() == 8){
-    if(p->killed)
-      exit(-1);
-    p->trapframe->epc += 4;
-    intr_on();
- syscall();
-  } else if((which_dev = devintr()) != 0){
-  } else if(r_scause() == 0xf || r_scause() == 13){
-    addr = r_stval();
-    if(addr < p -> sz){
-      char *mem = kalloc();
-      if (mem == 0) {
-        printf("Out of memory\n");
-        p->killed = 1;
-      } else {
-        memset(mem, 0, PGSIZE);
-        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
-          printf("Failed to map memory\n");
-          kfree(mem); 
-          p->killed = 1;
-        }
-      }
-    }else{
-      printf("Invalid memory access at address %p\n", addr);
-      p->killed = 1;
-    }
-  }else{
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
-  }
-  if(p->killed)
-    exit(-1);
-  if(which_dev == 2)
-    yield();
+void usertrap(void) {
+    int which_dev = 0;
+    uint64 addr;
 
-  usertrapret();
+    if ((r_sstatus() & SSTATUS_SPP) != 0)
+        panic("usertrap: not from user mode");
+
+    w_stvec((uint64)kernelvec);
+    struct proc *p = myproc();
+    p->trapframe->epc = r_sepc();
+
+    if (r_scause() == 8) {
+        if (p->killed)
+            exit(-1);
+
+        p->trapframe->epc += 4;
+        intr_on();
+        syscall();
+    } else if ((which_dev = devintr()) != 0) {
+        // Device interrupt handling (if any)
+    } else if (r_scause() == 0xf || r_scause() == 13) {
+        addr = r_stval();
+        if (addr < p->sz) {
+            char *mem = kalloc();
+            if (mem == 0) {
+                printf("Out of memory\n");
+                p->killed = 1;
+            } else {
+                memset(mem, 0, PGSIZE);
+
+                uint64 addr = r_stval();
+                if (addr < p->sz && addr >= 0) {
+                    if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
+                        printf("Failed to map memory\n");
+                        kfree(mem);
+                        p->killed = 1;
+                    }
+                } else {
+                    printf("Invalid memory access at address %p\n", addr);
+                    kfree(mem);
+                    p->killed = 1;
+                }
+            }
+        } else {
+            printf("Invalid memory access at address %p\n", addr);
+            p->killed = 1;
+        }
+    } else {
+        printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+        p->killed = 1;
+    }
+
+    if (p->killed)
+        exit(-1);
+
+    if (which_dev == 2)
+        yield();
+
+    usertrapret();
 }
+
 //
 // return to user space
 //

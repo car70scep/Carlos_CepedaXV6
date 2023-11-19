@@ -591,7 +591,7 @@ uint64
 sys_munmap(void)
 {
   uint64 addr;
-    uint64 length;
+  uint64 length;
 
     if (argaddr(0, &addr) < 0)
         return -1;
