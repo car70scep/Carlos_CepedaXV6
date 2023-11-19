@@ -109,6 +109,7 @@ struct          mmr_list* get_mmr_list(int);
 int             alloc_mmr_listid(void);
 void            dealloc_mmr_listid(int);
 void            mmrlistinit(void);
+int		          timeslice(int); 
 
 
 // swtch.S
