@@ -134,30 +134,77 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 // physical addresses starting at pa. va and size might not
 // be page-aligned. Returns 0 on success, -1 if walk() couldn't
 // allocate a needed page-table page.
-int
-mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
-{
-  uint64 a, last;
-  pte_t *pte;
+// int
+// mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+// {
+//   uint64 a, last;
+//   pte_t *pte;
 
-  if(size == 0)
-    panic("mappages: size");
+//   if(size == 0)
+//     panic("mappages: size");
   
-  a = PGROUNDDOWN(va);
-  last = PGROUNDDOWN(va + size - 1);
-  for(;;){
-    if((pte = walk(pagetable, a, 1)) == 0)
-      return -1;
-    if(*pte & PTE_V)
-       continue;
-      //panic("mappages: remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
-    if(a == last)
-      break;
-    a += PGSIZE;
-    pa += PGSIZE;
-  }
-  return 0;
+//   a = PGROUNDDOWN(va);
+//   last = PGROUNDDOWN(va + size - 1);
+//   for(;;){
+//     if((pte = walk(pagetable, a, 1)) == 0)
+//       return -1;
+//     if(*pte & PTE_V)
+//        continue;
+//       //panic("mappages: remap");
+//     *pte = PA2PTE(pa) | perm | PTE_V;
+//     if(a == last)
+//       break;
+//     a += PGSIZE;
+//     pa += PGSIZE;
+//   }
+//   return 0;
+// }
+
+int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+{
+    uint64 a, last;
+    pte_t *pte;
+
+    if (size == 0)
+        panic("mappages: size");
+
+    a = PGROUNDDOWN(va);
+    last = PGROUNDDOWN(va + size - 1);
+    for (;;)
+    {
+        if ((pte = walk(pagetable, a, 1)) == 0)
+            return -1;
+
+        // Check if the page is already mapped
+        if (*pte & PTE_V)
+        {
+            // Handle remapping based on your design choice
+            // You might want to fail the mapping or update the existing mapping
+            panic("mappages: remap");
+        }
+
+        // Additional error checking for permissions
+        if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
+        {
+            panic("mappages: invalid permissions");
+        }
+
+        *pte = PA2PTE(pa) | perm | PTE_V;
+
+        if (a == last)
+            break;
+
+        a += PGSIZE;
+        pa += PGSIZE;
+
+        // Explicitly check if a exceeds last to avoid potential issues
+        if (a > last)
+        {
+            panic("mappages: address range exceeded");
+        }
+    }
+
+    return 0;
 }
 
 // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)

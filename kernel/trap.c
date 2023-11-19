@@ -235,21 +235,14 @@ void usertrap(void) {
             } else {
                 memset(mem, 0, PGSIZE);
 
-                uint64 addr = r_stval();
-                if (addr < p->sz && addr >= 0) {
-                    if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
-                        printf("Failed to map memory\n");
-                        kfree(mem);
-                        p->killed = 1;
-                    }
-                } else {
-                    printf("Invalid memory access at address %p\n", addr);
+                if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
+                    printf("Failed to map memory\n");
                     kfree(mem);
                     p->killed = 1;
                 }
             }
         } else {
-            printf("Invalid memory access at address %p\n", addr);
+            printf("Invalid memory access at address %p\n", (void*)addr);
             p->killed = 1;
         }
     } else {
@@ -266,6 +259,7 @@ void usertrap(void) {
 
     usertrapret();
 }
+
 
 //
 // return to user space
