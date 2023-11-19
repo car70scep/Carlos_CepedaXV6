@@ -184,10 +184,10 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
         }
 
         // Additional error checking for permissions
-        if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
-        {
-            panic("mappages: invalid permissions");
-        }
+        // if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
+        // {
+        //     panic("mappages: invalid permissions");
+        // }
 
         *pte = PA2PTE(pa) | perm | PTE_V;
 
