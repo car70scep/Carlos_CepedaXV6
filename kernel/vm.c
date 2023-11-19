@@ -180,7 +180,8 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
         {
             // Handle remapping based on your design choice
             // You might want to fail the mapping or update the existing mapping
-            panic("mappages: remap");
+            //panic("mappages: remap");
+            continue;
         }
 
         // Additional error checking for permissions
