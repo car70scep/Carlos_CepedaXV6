@@ -299,6 +299,56 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
+// int
+// fork(void)
+// {
+//   int i, pid;
+//   struct proc *np;
+//   struct proc *p = myproc();
+
+//   // Allocate process.
+//   if((np = allocproc()) == 0){
+//     return -1;
+//   }
+
+//   // Copy user memory from parent to child.
+//   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+//     freeproc(np);
+//     release(&np->lock);
+//     return -1;
+//   }
+//   np->sz = p->sz;
+//   np->cur_max = p->cur_max;
+
+//   // copy saved user registers.
+//   *(np->trapframe) = *(p->trapframe);
+
+//   // Cause fork to return 0 in the child.
+//   np->trapframe->a0 = 0;
+
+//   // increment reference counts on open file descriptors.
+//   for(i = 0; i < NOFILE; i++)
+//     if(p->ofile[i])
+//       np->ofile[i] = filedup(p->ofile[i]);
+//   np->cwd = idup(p->cwd);
+
+//   safestrcpy(np->name, p->name, sizeof(p->name));
+
+//   pid = np->pid;
+
+//   release(&np->lock);
+
+//   acquire(&wait_lock);
+//   np->parent = p;
+//   release(&wait_lock);
+
+//   acquire(&np->lock);
+//   np->state = RUNNABLE;
+//   release(&np->lock);
+
+//   return pid;
+// }
+
 int
 fork(void)
 {
@@ -312,13 +362,13 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  if(uvmcopy(p->pagetable, np->pagetable, 0, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
   }
   np->sz = p->sz;
-  np->cur_max = p->cur_max;
+  np->cur_max = p->cur_max; 
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -336,6 +386,48 @@ fork(void)
 
   pid = np->pid;
 
+  
+  // Copy mmr table from parent to child
+  memmove((char*)np->mmr, (char *)p->mmr, MAX_MMR*sizeof(struct mmr));
+  // For each valid mmr, copy memory from parent to child, allocating new memory for
+  // private regions but not for shared regions, and add child to family for shared regions.
+  for (int i = 0; i < MAX_MMR; i++) {
+    if(p->mmr[i].valid == 1) {
+      if(p->mmr[i].flags & MAP_PRIVATE) {
+        for (uint64 addr = p->mmr[i].addr; addr < p->mmr[i].addr+p->mmr[i].length; addr += PGSIZE)
+          if(walkaddr(p->pagetable, addr))
+            if(uvmcopy(p->pagetable, np->pagetable, addr, addr+PGSIZE) < 0) {
+              freeproc(np);
+              release(&np->lock);
+              return -1;
+            }
+        np->mmr[i].mmr_family.proc = np;
+        np->mmr[i].mmr_family.listid = -1;
+        np->mmr[i].mmr_family.next = &(np->mmr[i].mmr_family);
+        np->mmr[i].mmr_family.prev = &(np->mmr[i].mmr_family);
+      } else { // MAP_SHARED
+        for (uint64 addr = p->mmr[i].addr; addr < p->mmr[i].addr+p->mmr[i].length; addr += PGSIZE)
+          if(walkaddr(p->pagetable, addr))
+            if(uvmcopyshared(p->pagetable, np->pagetable, addr, addr+PGSIZE) < 0) {
+              freeproc(np);
+              release(&np->lock);
+              return -1;
+            }
+        // add child process np to family for this mapped memory region
+        np->mmr[i].mmr_family.proc = np;
+        np->mmr[i].mmr_family.listid = p->mmr[i].mmr_family.listid;
+        acquire(&mmr_list[p->mmr[i].mmr_family.listid].lock);
+        np->mmr[i].mmr_family.next = p->mmr[i].mmr_family.next;
+        p->mmr[i].mmr_family.next = &(np->mmr[i].mmr_family);
+        np->mmr[i].mmr_family.prev = &(p->mmr[i].mmr_family);
+        if (p->mmr[i].mmr_family.prev == &(p->mmr[i].mmr_family))
+          p->mmr[i].mmr_family.prev = &(np->mmr[i].mmr_family);
+        release(&mmr_list[p->mmr[i].mmr_family.listid].lock);
+      }
+    }
+  }
+  //Here finished Moore's code
+
   release(&np->lock);
 
   acquire(&wait_lock);
@@ -344,10 +436,15 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+ 
+  enqueue_at_tail(np,np->priority);
+
   release(&np->lock);
 
   return pid;
 }
+
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
