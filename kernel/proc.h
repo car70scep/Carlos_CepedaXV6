@@ -84,7 +84,7 @@ struct trapframe {
 struct mmr_list { 
    struct spinlock lock;
    int valid;
-}
+};
 
 // struct for node in list of processes that share a mapped memory region
 struct mmr_node {
