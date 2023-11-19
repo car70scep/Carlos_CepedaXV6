@@ -19,13 +19,15 @@ int fstat(int fd, struct stat*);
 int link(const char*, const char*);
 int mkdir(const char*);
 int chdir(const char*);
-int dup(int);
+int dup(int); 
 int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int getprocs(struct pstat*);
 uint64 freepmem(void);
+void *mmap(void*,uint64,int,int,int,int); 
+int munmap(void*,uint64);
 
 // ulib.c
 int stat(const char*, struct stat*);
