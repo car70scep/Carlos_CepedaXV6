@@ -235,7 +235,7 @@ void usertrap(void) {
             } else {
                 memset(mem, 0, PGSIZE);
 
-                if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
+                if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X  | PTE_U) != 0) {
                     printf("Failed to map memory\n");
                     kfree(mem);
                     p->killed = 1;
