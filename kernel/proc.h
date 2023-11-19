@@ -136,7 +136,7 @@ struct proc {
   int     yielded;          // 1 if this process yielded to a higher priority process before using its timeslice
   struct proc *next;    // next process in scheduler queue
   int  arrtime; 
-
+  int cputime;
   struct mmr mmr[MAX_MMR];     // Array of memory-mapped regions
   uint64 cur_max;              // Max address of free virtual memory, 
                                // initialize to MAXVA-2*PGSIZE

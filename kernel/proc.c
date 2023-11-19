@@ -125,7 +125,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
- 
+  p-> cputime = 0;
   p->timeslice = 0;
   p->yielded = 0;
 
