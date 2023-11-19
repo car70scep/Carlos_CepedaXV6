@@ -194,7 +194,6 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
                 panic("mappages: invalid permissions");
             }
 
-            *pte = PA2PTE(pa) | perm | PTE_V;
         
 
         if (a == last)
