@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "pstat.h"
 #include "defs.h"
+#include "stat.h"
 
 struct cpu cpus[NCPU];
 
@@ -15,6 +16,10 @@ struct proc *initproc;
 
 int nextpid = 1;
 struct spinlock pid_lock;
+
+struct mmr_list mmr_list[NPROC*MAX_MMR];
+struct spinlock listid_lock;
+
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -154,6 +159,30 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+  for (int i = 0; i < MAX_MMR; i++) {
+    int dofree = 0;
+    if (p->mmr[i].valid == 1) {
+      if (p->mmr[i].flags & MAP_PRIVATE)
+        dofree = 1;
+      else { // MAP_SHARED
+        acquire(&mmr_list[p->mmr[i].mmr_family.listid].lock);
+        if (p->mmr[i].mmr_family.next == &(p->mmr[i].mmr_family)) { // no other family members
+          dofree = 1;
+          release(&mmr_list[p->mmr[i].mmr_family.listid].lock);
+          dealloc_mmr_listid(p->mmr[i].mmr_family.listid);
+        } else {  // remove p from mmr family
+          (p->mmr[i].mmr_family.next)->prev = p->mmr[i].mmr_family.prev;
+          (p->mmr[i].mmr_family.prev)->next = p->mmr[i].mmr_family.next;
+          release(&mmr_list[p->mmr[i].mmr_family.listid].lock);
+        }
+      }
+      // Remove region mappings from page table
+      for (uint64 addr = p->mmr[i].addr; addr < p->mmr[i].addr + p->mmr[i].length; addr += PGSIZE)
+        if (walkaddr(p->pagetable, addr))
+          uvmunmap(p->pagetable, addr, 1, dofree);
+    }
+  }
+
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -235,7 +264,7 @@ userinit(void)
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
-
+  p->cur_max = MAXVA-2*PGSIZE;
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
@@ -289,6 +318,7 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+  np->cur_max = p->cur_max;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -683,4 +713,55 @@ procinfo(uint64 addr)
     addr += sizeof(procinfo);
   }
   return nprocs;
+}
+
+
+// Initialize mmr_list
+void
+mmrlistinit(void)
+{
+  struct mmr_list *pmmrlist;
+  initlock(&listid_lock,"listid");
+  for (pmmrlist = mmr_list; pmmrlist < &mmr_list[NPROC*MAX_MMR]; pmmrlist++) {
+    initlock(&pmmrlist->lock, "mmrlist");
+    pmmrlist->valid = 0;
+  }
+}
+
+// find the mmr_list for a given listid
+struct mmr_list*
+get_mmr_list(int listid) {
+  acquire(&listid_lock);
+  if (listid >=0 && listid < NPROC*MAX_MMR && mmr_list[listid].valid) {
+    release(&listid_lock);
+    return(&mmr_list[listid]);
+  }
+  else {
+    release(&listid_lock);
+    return 0;
+  }
+}
+
+// free up entry in mmr_list array
+void
+dealloc_mmr_listid(int listid) {
+  acquire(&listid_lock);
+  mmr_list[listid].valid = 0;
+  release(&listid_lock);
+}
+
+// find an unused entry in the mmr_list array
+int
+alloc_mmr_listid() {
+  acquire(&listid_lock);
+  int listid = -1;
+  for (int i = 0; i < NPROC*MAX_MMR; i++) {
+    if (mmr_list[i].valid == 0) {
+      mmr_list[i].valid = 1;
+      listid = i;
+      break;
+    }
+  }
+  release(&listid_lock);
+  return(listid);
 }
