@@ -128,7 +128,6 @@ found:
   p-> cputime = 0;
   p->timeslice = 0;
   p->yielded = 0;
-
   p->next = 0;
 
   // Allocate a trapframe page.
