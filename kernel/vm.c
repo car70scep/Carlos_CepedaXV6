@@ -172,25 +172,28 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     last = PGROUNDDOWN(va + size - 1);
     for (;;)
     {
-        if ((pte = walk(pagetable, a, 1)) == 0)
-            return -1;
+        pte = walk(pagetable, a, 1);
+
+        if (pte == 0)
+            return -1; // Failed to create or find page table entry
 
         // Check if the page is already mapped
         if (*pte & PTE_V)
         {
             // Handle remapping based on your design choice
-            // You might want to fail the mapping or update the existing mapping
-            //panic("mappages: remap");
-            continue;
+            // In this example, we simply update the existing mapping
+            *pte = PA2PTE(pa) | perm | PTE_V;
         }
-
-        // Additional error checking for permissions
-        // if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
+        // else
         // {
-        //     panic("mappages: invalid permissions");
-        // }
+        //     // Additional error checking for permissions
+        //     // if ((perm & ~(PTE_U | PTE_W | PTE_X)) != 0)
+        //     // {
+        //     //     panic("mappages: invalid permissions");
+        //     // }
 
-        *pte = PA2PTE(pa) | perm | PTE_V;
+        //     *pte = PA2PTE(pa) | perm | PTE_V;
+        // }
 
         if (a == last)
             break;
@@ -207,6 +210,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 
     return 0;
 }
+
 
 // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 // {
