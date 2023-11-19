@@ -115,7 +115,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-    //Here I start doing Lab 3 Task 2 Code
+    
 
   } else if(r_scause()==13||r_scause()==15){
      uint64 fault_addr = r_stval();
@@ -141,7 +141,6 @@ usertrap(void)
         }
       }
     }
-    //Here it finishes
 
   } else if((which_dev = devintr()) != 0){
     // ok
@@ -154,13 +153,11 @@ usertrap(void)
   if(p->killed)
     exit(-1);
 
-  // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
-    p->cputime++; //Christian Gomez: Increment CPU time
-    p->tsticks++; //Christian Gomez Task 4
-   // yield();
+    p->cputime++; 
+    p->tsticks++; 
+  
 
-    //Christian Gomez Task 4 -> usertrap() method
    if(p->tsticks >= timeslice(p->priority)){
         if(p->priority == HIGH){
            p->priority = MEDIUM;
@@ -172,7 +169,7 @@ usertrap(void)
            p->priority = LOW;
            yield();
          }
-    }//if
+    }
   }
 
   usertrapret();
