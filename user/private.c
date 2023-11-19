@@ -41,7 +41,7 @@ void consumer()
 int
 main(int argc, char *argv[])
 {
-    buffer = (buffer_t *) mmap(NULL, sizeof(buffer_t),
+    buffer = (buffer_t *)mmap(NULL, sizeof(buffer_t),
 		               PROT_READ | PROT_WRITE,
 			       MAP_ANONYMOUS | MAP_PRIVATE,
 			       -1, 0);
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
 
     printf("total = %d\n", buffer->total);
 
-    munmap(buffer, sizeof(buffer_t));
+    //munmap(buffer, sizeof(buffer_t));
 
     exit(0);
 }
