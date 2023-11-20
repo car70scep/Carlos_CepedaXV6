@@ -23,66 +23,66 @@ trapinit(void)
 }
 
 // set up to take exceptions and traps while in the kernel.
-void
-trapinithart(void)
-{
-  w_stvec((uint64)kernelvec);
-}
+// void
+// trapinithart(void)
+// {
+//   w_stvec((uint64)kernelvec);
+// }
 
-//
-// handle an interrupt, exception, or system call from user space.
-// called from trampoline.S
-//
-void
-usertrap(void)
-{
-  int which_dev = 0;
+// //
+// // handle an interrupt, exception, or system call from user space.
+// // called from trampoline.S
+// //
+// void
+// usertrap(void)
+// {
+//   int which_dev = 0;
 
-  if((r_sstatus() & SSTATUS_SPP) != 0)
-    panic("usertrap: not from user mode");
+//   if((r_sstatus() & SSTATUS_SPP) != 0)
+//     panic("usertrap: not from user mode");
 
-  // send interrupts and exceptions to kerneltrap(),
-  // since we're now in the kernel.
-  w_stvec((uint64)kernelvec);
+//   // send interrupts and exceptions to kerneltrap(),
+//   // since we're now in the kernel.
+//   w_stvec((uint64)kernelvec);
 
-  struct proc *p = myproc();
+//   struct proc *p = myproc();
   
-  // save user program counter.
-  p->trapframe->epc = r_sepc();
+//   // save user program counter.
+//   p->trapframe->epc = r_sepc();
   
-  if(r_scause() == 8){
-    // system call
+//   if(r_scause() == 8){
+//     // system call
 
-    if(p->killed)
-      exit(-1);
+//     if(p->killed)
+//       exit(-1);
 
-    // sepc points to the ecall instruction,
-    // but we want to return to the next instruction.
-    p->trapframe->epc += 4;
+//     // sepc points to the ecall instruction,
+//     // but we want to return to the next instruction.
+//     p->trapframe->epc += 4;
 
-    // an interrupt will change sstatus &c registers,
-    // so don't enable until done with those registers.
-    intr_on();
+//     // an interrupt will change sstatus &c registers,
+//     // so don't enable until done with those registers.
+//     intr_on();
 
-    syscall();
-  } else if((which_dev = devintr()) != 0){
-    // ok
-  } else {
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
-  }
+//     syscall();
+//   } else if((which_dev = devintr()) != 0){
+//     // ok
+//   } else {
+//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+//     p->killed = 1;
+//   }
 
-  if(p->killed)
-    exit(-1);
+//   if(p->killed)
+//     exit(-1);
 
-  // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
+//   // give up the CPU if this is a timer interrupt.
+//   if(which_dev == 2)
+//     yield();
 
-  usertrapret();
+//   usertrapret();
 
-}
+// }
 
 
 
@@ -136,72 +136,72 @@ usertrap(void)
 // }
 
 
-// void
-// usertrap(void)
-// {
-//   int which_dev = 0;
+void
+usertrap(void)
+{
+  int which_dev = 0;
 
-//   if((r_sstatus() & SSTATUS_SPP) != 0)
-//     panic("usertrap: not from user mode");
-//   w_stvec((uint64)kernelvec);
+  if((r_sstatus() & SSTATUS_SPP) != 0)
+    panic("usertrap: not from user mode");
+  w_stvec((uint64)kernelvec);
 
-//   struct proc *p = myproc();
+  struct proc *p = myproc();
 
-//   p->trapframe->epc = r_sepc();
+  p->trapframe->epc = r_sepc();
   
-//   if(r_scause() == 8){
-//     // system call
+  if(r_scause() == 8){
+    // system call
 
-//     if(p->killed)
-//       exit(-1);
+    if(p->killed)
+      exit(-1);
 
-//     p->trapframe->epc += 4;
+    p->trapframe->epc += 4;
 
-//     intr_on();
+    intr_on();
 
-//     syscall();
-//   } else if((which_dev = devintr()) != 0){
+    syscall();
+  } else if((which_dev = devintr()) != 0){
 
-//   } else if(r_scause() == 13 || r_scause() == 15){
-//   	if(r_stval() < p->sz){
+  } else if(r_scause() == 13 || r_scause() == 15){
+  	if(r_stval() < p->sz){
 
-//   		void *physical_mem = kalloc();
+  		void *physical_mem = kalloc();
 
-//   		if(physical_mem){
+  		if(physical_mem){
   			
-//   			if(mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_mem, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0){ 
-//   				kfree(physical_mem);
-//   				printf("mappages didn't work\n");
-//   				p->killed = 1;
-//   				exit(-1);
-//   			}
+  			if(mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_mem, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0){ 
+  				kfree(physical_mem);
+  				printf("mappages didn't work\n");
+  				p->killed = 1;
+  				exit(-1);
+  			}
   			
-//   		}else{
-// 			printf("usertrap(): no more memory\n");
-//   			p->killed = 1;
-//   			exit(-1);
-//   		}
+  		}else{
+			printf("usertrap(): no more memory\n");
+  			p->killed = 1;
+  			exit(-1);
+  		}
   		
-//   	}else{
-//   		printf("usertrap(): invalid memory address\n");
-//   		p->killed = 1;
-//   		exit(-1);
-//   	}
+  	}else{
+  		printf("usertrap(): invalid memory address\n");
+  		p->killed = 1;
+  		exit(-1);
+  	}
   
-//   } else {
-//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-//     p->killed = 1;
-//   }
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    p->killed = 1;
+  }
 
-//   if(p->killed)
-//     exit(-1);
+  if(p->killed)
+    exit(-1);
 
-//   if(which_dev == 2)
-//     yield();
+  if(which_dev == 2)
+    yield();
 
-//   usertrapret();
-// }
+  usertrapret();
+}
 
 //
 // return to user space
