@@ -329,7 +329,6 @@ fork(void)
     return -1;
   }
 
-  // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
@@ -338,13 +337,11 @@ fork(void)
   np->sz = p->sz;
   np->cur_max = p->cur_max;
 
-  // copy saved user registers.
+
   *(np->trapframe) = *(p->trapframe);
 
-  // Cause fork to return 0 in the child.
-  np->trapframe->a0 = 0;
 
-  // increment reference counts on open file descriptors.
+  np->trapframe->a0 = 0;
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
@@ -366,6 +363,7 @@ fork(void)
 
   return pid;
 }
+
 
 // int
 // fork(void)
