@@ -593,9 +593,17 @@ sys_munmap(void)
   uint64 addr;
   uint64 length;
 
-    if (argaddr(0, &addr) < 0)
+    // if (argaddr(0, &addr) < 0)
+    //     return -1;
+    // if (argaddr(1, &length) < 0)
+    //     return -1;
+    // return (munmap(addr, length));
+
+        if (argaddr(0, &addr) < 0 || argaddr(1, &length) < 0)
         return -1;
-    if (argaddr(1, &length) < 0)
-        return -1;
-    return (munmap(addr, length));
+
+    // Call munmap helper function
+    int result = munmap(addr, length);
+
+    return result;
 }
