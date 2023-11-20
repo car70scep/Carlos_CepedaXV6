@@ -209,23 +209,19 @@ void
 usertrap(void)
 {
   int which_dev = 0;
-  int newsz = myproc()->sz;
 
-  if ((r_sstatus() & SSTATUS_SPP) != 0)
+  if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
-
-  // send interrupts and exceptions to kerneltrap(),
-  // since we're now in the kernel.
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
-  p->cputime++;   
-  p->trapframe->epc = r_sepc();
 
-  if (r_scause() == 8) {
+  p->trapframe->epc = r_sepc();
+  
+  if(r_scause() == 8){
     // system call
 
-    if (p->killed)
+    if(p->killed)
       exit(-1);
 
     p->trapframe->epc += 4;
@@ -233,33 +229,33 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if((which_dev = devintr()) != 0){
 
-  } else if (r_scause() == 13 || r_scause() == 15) {
-    if (r_stval() < newsz) {
-    
-      uint64 faulting_addr = r_stval();
-      uint64 virtual_page = PGROUNDDOWN(faulting_addr);
+  } else if(r_scause() == 13 || r_scause() == 15){
+  	if(r_stval() < p->sz){
 
-      char *mem = kalloc();  
-      if (mem == 0) {
+  		void *physical_mem = kalloc();
 
-        printf("Out of physical memory\n");
-        p->killed = 1;
-
-        return;
-      }
-	virtual_page = PGROUNDDOWN(faulting_addr);
-
-   
-      if (mappages(p->pagetable, virtual_page, PGSIZE, (uint64)mem, PTE_R | PTE_W | PTE_X | PTE_U) < 0) {
-        kfree(mem);
-        printf("Failed to map pages\n");
-        p->killed = 1;
-        return;
-      }
-
-    }
-  } else if ((which_dev = devintr()) != 0) {
+  		if(physical_mem){
+  			
+  			if(mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_mem, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0){ 
+  				kfree(physical_mem);
+  				printf("mappages didn't work\n");
+  				p->killed = 1;
+  				exit(-1);
+  			}
+  			
+  		}else{
+			printf("usertrap(): no more memory\n");
+  			p->killed = 1;
+  			exit(-1);
+  		}
+  		
+  	}else{
+  		printf("usertrap(): invalid memory address\n");
+  		p->killed = 1;
+  		exit(-1);
+  	}
   
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
@@ -267,16 +263,14 @@ usertrap(void)
     p->killed = 1;
   }
 
-  if (p->killed)
+  if(p->killed)
     exit(-1);
 
-  
-  if (which_dev == 2)
+  if(which_dev == 2)
     yield();
 
   usertrapret();
 }
-
 
 //
 // return to user space

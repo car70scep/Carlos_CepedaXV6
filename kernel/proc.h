@@ -143,9 +143,4 @@ struct proc {
 
 };
 
-struct queue {
-  struct spinlock lock;
-  uint   timeslice;
-  struct proc *head;
-  struct proc *tail;
-};
+
