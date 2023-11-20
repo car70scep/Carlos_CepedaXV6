@@ -160,57 +160,32 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 //   return 0;
 // }
 
-int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+int
+mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 {
-    uint64 a, last;
-    pte_t *pte;
+  uint64 a, last;
+  pte_t *pte;
 
-    if (size == 0)
-        panic("mappages: size");
-
-    a = PGROUNDDOWN(va);
-    last = PGROUNDDOWN(va + size - 1);
-    for (;;)
-    {
-        pte = walk(pagetable, a, 1);
-
-        if (pte == 0)
-            return -1; // Failed to create or find page table entry
-
-        // Check if the page is already mapped
-        if (*pte & PTE_V)
-        {
-            // Handle remapping based on your design choice
-            // In this example, we simply update the existing mapping
-            *pte = PA2PTE(pa) | perm | PTE_V;
-        }
-        else
-        {
-          *pte = PA2PTE(pa) | perm | PTE_V;
-        }
-            // Additional error checking for permissions
-            if ((perm & ~(PTE_U | PTE_W | PTE_X | PTE_R)) != 0)
-            {
-                panic("mappages: invalid permissions");
-            }
-
-        
-
-        if (a == last)
-            break;
-
-        a += PGSIZE;
-        pa += PGSIZE;
-
-        // Explicitly check if a exceeds last to avoid potential issues
-        if (a > last)
-        {
-            panic("mappages: address range exceeded");
-        }
-    }
-
-    return 0;
+  if(size == 0)
+    panic("mappages: size");
+  
+  a = PGROUNDDOWN(va);
+  last = PGROUNDDOWN(va + size - 1);
+  for(;;){
+    if((pte = walk(pagetable, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_V)
+      panic("mappages: remap");
+    *pte = PA2PTE(pa) | perm | PTE_V;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
 }
+
+
 
 
 // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
