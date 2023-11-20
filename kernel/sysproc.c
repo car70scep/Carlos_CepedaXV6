@@ -40,19 +40,19 @@ sys_wait(void)
   return wait(p);
 }
 
-// uint64
-// sys_sbrk(void)
-// {
-//   int addr;
-//   int n;
+uint64
+sys_sbrk(void)
+{
+  int addr;
+  int n;
 
-//   if(argint(0, &n) < 0)
-//     return -1;
-//   addr = myproc()->sz;
-//   if(growproc(n) < 0)
-//     return -1;
-//   return addr;
-// }
+  if(argint(0, &n) < 0)
+    return -1;
+  addr = myproc()->sz;
+  if(growproc(n) < 0)
+    return -1;
+  return addr;
+}
 
 //HW4 Task 2
 // uint64 sys_sbrk(void)
@@ -71,22 +71,22 @@ sys_wait(void)
 //   return p->sz - n;
 // }
 
-uint64 sys_sbrk(void)
-{
-  int n;
+// uint64 sys_sbrk(void)
+// {
+//   int n;
 
-  if (argint(0, &n) < 0)
-    return -1;
+//   if (argint(0, &n) < 0)
+//     return -1;
 
-  struct proc *p = myproc();
+//   struct proc *p = myproc();
   
-  uint64 newsz = p->sz + n;
-  if(newsz < p->sz || newsz >= TRAPFRAME){
-    return -1;
-  }
-  p->sz = newsz;
-  return p->sz - n;
-}
+//   uint64 newsz = p->sz + n;
+//   if(newsz < p->sz || newsz >= TRAPFRAME){
+//     return -1;
+//   }
+//   p->sz = newsz;
+//   return p->sz - n;
+// }
 
 
 
