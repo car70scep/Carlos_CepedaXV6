@@ -32,6 +32,7 @@ usertrap(void)
 {
   int which_dev = 0;
   uint64 addr;
+  int newsz = myproc()->sz;
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
   w_stvec((uint64)kernelvec);
@@ -43,10 +44,10 @@ usertrap(void)
     p->trapframe->epc += 4;
     intr_on();
  syscall();
-  // } else if((which_dev = devintr()) != 0){
+  } else if((which_dev = devintr()) != 0){
   } else if(r_scause() == 0xf || r_scause() == 13){
     addr = r_stval();
-    if(addr < p -> sz){
+    if(addr < newsz){
       char *mem = kalloc();
       if (mem == 0) {
         printf("Out of memory\n");
