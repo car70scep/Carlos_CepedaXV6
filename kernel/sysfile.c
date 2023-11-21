@@ -485,53 +485,58 @@ sys_pipe(void)
   return 0;
 }
 
+//Create a new mapped memory region.
 uint64
-sys_mmap()
-{
- uint64 length;
- int prot;
- int flags;
- struct proc *p = myproc();
- struct mmr *newmmr = 0;
- uint64 start_addr;
- /* Add error checking for length, prot, and flags arguments */
- if (argaddr(1, &length) < 0)
- return -1;
- if (argint(2, &prot) < 0)
- return -1;
- if (argint(3, &flags) <0)
- return -1;
- // Search p->mmr[] for unused location 
- for (int i = 0; i < MAX_MMR; i++) {
- if (p->mmr[i].valid == 0) {
- newmmr = &(p->mmr[i]);
- break;
- }
- }
- // Fill in struct mmr fields for new mapped region
- if (newmmr) {
- /* Calculate the start address of the new mapped region, make sure it starts on a page boundary */
- start_addr = PGROUNDDOWN(p->cur_max - length);/**** your code goes here ****/
- newmmr->valid = 1;
- newmmr->addr = start_addr;
- newmmr->length = p->cur_max - start_addr;
- newmmr->prot = prot;
- newmmr->flags = flags;
- newmmr->mmr_family.proc = p;
- newmmr->mmr_family.next = &(newmmr->mmr_family); // next points to its own mmr_node
- newmmr->mmr_family.prev = &(newmmr->mmr_family); // prev points to its own mmr_node
- // Allocate page table pages if needed
- if (mapvpages(p->pagetable, newmmr->addr, newmmr->length) < 0) {
- newmmr->valid = 0;
- return -1;
- }
- if (flags & MAP_SHARED) // start an mmr_list if region is shared
- newmmr->mmr_family.listid = alloc_mmr_listid();
- p->cur_max = start_addr;
- return start_addr;
- } else {
- return -1;
- }
+sys_mmap(){
+  uint64 length;
+  int prot;
+  int flags;
+  struct proc *p = myproc();
+  struct mmr *newmmr = 0;
+  uint64 start_addr;
+
+  //Add error checking for length, prot, and flags arguments
+  if(argaddr(1,&length) < 0 ){
+    return -1;
+  }
+  if(argint(2,&prot) < 0){
+    return -1;
+  }
+  if(argint(3,&flags) < 0){
+    return -1;
+  }
+  //Search p->mmr[] for unused location
+  for(int i = 0; i < MAX_MMR; i++){
+    if(p->mmr[i].valid == 0){
+      newmmr = &(p->mmr[i]);
+      break;
+    }
+  }
+  //Fill in struct mmr fields for new mapped region
+  if(newmmr){
+    start_addr = PGROUNDDOWN(p->cur_max - length);
+    newmmr->valid = 1;
+    newmmr->addr = start_addr;
+    newmmr->length = p->cur_max - start_addr;
+    newmmr->prot = prot;
+    newmmr->flags = flags;
+    newmmr->mmr_family.proc = p;
+    newmmr->mmr_family.next = &(newmmr->mmr_family);
+    newmmr->mmr_family.prev = &(newmmr->mmr_family);
+    //Allocate page table pages if needed
+    if(mapvpages(p->pagetable, newmmr->addr, newmmr->length) < 0) {
+      newmmr->valid = 0;
+      return -1;
+    }
+    if(flags & MAP_SHARED){
+      newmmr->mmr_family.listid = alloc_mmr_listid();
+    }
+    p->cur_max = start_addr;
+    return start_addr;
+  }
+  else{
+    return -1;
+  }
 }
 
 //Unmap memory regions if it exists
