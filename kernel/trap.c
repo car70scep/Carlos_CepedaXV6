@@ -43,7 +43,7 @@ usertrap(void)
     p->trapframe->epc += 4;
     intr_on();
  syscall();
-  } else if((which_dev = devintr()) != 0){
+  // } else if((which_dev = devintr()) != 0){
   } else if(r_scause() == 0xf || r_scause() == 13){
     addr = r_stval();
     if(addr < p -> sz){
