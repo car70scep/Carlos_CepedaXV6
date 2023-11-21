@@ -96,7 +96,7 @@ void usertrap(void)
   else if ((which_dev = devintr()) != 0)
   {
   }
-  else if (r_scause() == 13 || r_scause() == 0xf)
+  else if (r_scause() == 0xf || r_scause() == 13)
   {
     addr = r_stval();
     if (addr < p->sz)
