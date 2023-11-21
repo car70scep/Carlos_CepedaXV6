@@ -20,6 +20,8 @@ struct spinlock pid_lock;
 struct mmr_list mmr_list[NPROC*MAX_MMR];
 struct spinlock listid_lock;
 
+int cur_max;
+
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
