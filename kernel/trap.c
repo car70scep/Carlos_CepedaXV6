@@ -31,7 +31,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
-  uint64 addr;
+  //uint64 addr;
   int newsz = myproc()->sz;
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
@@ -46,22 +46,22 @@ usertrap(void)
  syscall();
   } else if((which_dev = devintr()) != 0){
   } else if(r_scause() == 0xf || r_scause() == 13){
-    addr = r_stval();
-    if(addr < newsz){
+    //addr = r_stval();
+    if(r_stval() < newsz){
       char *mem = kalloc();
       if (mem == 0) {
         printf("Out of memory\n");
         p->killed = 1;
       } else {
         memset(mem, 0, PGSIZE);
-        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
+        if (mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)mem, PTE_W | PTE_X | PTE_R | PTE_U) != 0) {
           printf("Failed to map memory\n");
           kfree(mem); 
           p->killed = 1;
         }
       }
     }else{
-      printf("Invalid memory access at address %p\n", addr);
+      printf("Invalid memory access at address %p\n", r_stval());
       p->killed = 1;
     }
   }else{
