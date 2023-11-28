@@ -31,7 +31,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
-  //uint64 addr;
+  uint64 addr;
   int newsz = myproc()->sz;
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
@@ -46,8 +46,8 @@ usertrap(void)
  syscall();
   } else if((which_dev = devintr()) != 0){
   } else if(r_scause() == 0xf || r_scause() == 13){
-    //addr = r_stval();
-    if(r_stval() < newsz){
+    addr = r_stval();
+    if(addr > newsz){
       char *mem = kalloc();
       if (mem == 0) {
         printf("Out of memory\n");
@@ -66,7 +66,7 @@ usertrap(void)
     }
   }else{
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    printf("            sepc=%p stval=%p\n", r_sepc(), addr);
     p->killed = 1;
   }
   if(p->killed)
