@@ -31,7 +31,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
-  uint64 addr;
+  uint64 addr = r_stval();
   int newsz = myproc()->sz;
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
@@ -45,7 +45,7 @@ usertrap(void)
     intr_on();
  syscall();
   } else if(r_scause() == 0xf || r_scause() == 13){
-    addr = r_stval();
+    
     if(addr >= newsz){
       char *mem = kalloc();
       if (mem == 0) {
