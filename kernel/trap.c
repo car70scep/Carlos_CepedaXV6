@@ -81,6 +81,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
+  int newsize = myproc()->sz;
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
@@ -108,13 +109,9 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
-    // ok
-    
- 
   } else if(r_scause() == 13 || r_scause() == 15){
 
-  	if(r_stval() >= p->sz){
+  	if(r_stval() >= newsize){
 
   		void *physical_mem = kalloc();
 
