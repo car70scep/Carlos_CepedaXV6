@@ -114,7 +114,7 @@ usertrap(void)
  
   } else if(r_scause() == 13 || r_scause() == 15){
 
-  	if(r_stval() < p->sz){
+  	if(r_stval() > p->sz){
 
   		void *physical_mem = kalloc();
 
