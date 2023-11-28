@@ -46,7 +46,7 @@ usertrap(void)
  syscall();
   } else if(r_scause() == 0xf || r_scause() == 13){
     
-    if(r_stval() >= newsz){
+    if(r_stval() < newsz){
       char *mem = kalloc();
       if (mem == 0) {
         printf("Out of memory\n");
