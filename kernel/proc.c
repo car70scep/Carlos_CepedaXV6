@@ -319,52 +319,52 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
-int
-fork(void)
-{
-  int i, pid;
-  struct proc *np;
-  struct proc *p = myproc();
+// int
+// fork(void)
+// {
+//   int i, pid;
+//   struct proc *np;
+//   struct proc *p = myproc();
 
-  // Allocate process.
-  if((np = allocproc()) == 0){
-    return -1;
-  }
+//   // Allocate process.
+//   if((np = allocproc()) == 0){
+//     return -1;
+//   }
 
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-    freeproc(np);
-    release(&np->lock);
-    return -1;
-  }
-  np->sz = p->sz;
-  np->cur_max = p->cur_max;
-
-
-  *(np->trapframe) = *(p->trapframe);
+//   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+//     freeproc(np);
+//     release(&np->lock);
+//     return -1;
+//   }
+//   np->sz = p->sz;
+//   np->cur_max = p->cur_max;
 
 
-  np->trapframe->a0 = 0;
-  for(i = 0; i < NOFILE; i++)
-    if(p->ofile[i])
-      np->ofile[i] = filedup(p->ofile[i]);
-  np->cwd = idup(p->cwd);
+//   *(np->trapframe) = *(p->trapframe);
 
-  safestrcpy(np->name, p->name, sizeof(p->name));
 
-  pid = np->pid;
+//   np->trapframe->a0 = 0;
+//   for(i = 0; i < NOFILE; i++)
+//     if(p->ofile[i])
+//       np->ofile[i] = filedup(p->ofile[i]);
+//   np->cwd = idup(p->cwd);
 
-  release(&np->lock);
+//   safestrcpy(np->name, p->name, sizeof(p->name));
 
-  acquire(&wait_lock);
-  np->parent = p;
-  release(&wait_lock);
+//   pid = np->pid;
 
-  acquire(&np->lock);
-  np->state = RUNNABLE;
-  release(&np->lock);
+//   release(&np->lock);
 
-  return pid;
-}
+//   acquire(&wait_lock);
+//   np->parent = p;
+//   release(&wait_lock);
+
+//   acquire(&np->lock);
+//   np->state = RUNNABLE;
+//   release(&np->lock);
+
+//   return pid;
+// }
 
 int
 fork(void)
@@ -406,11 +406,9 @@ fork(void)
 
   pid = np->pid;
 
-  // HW5 Changes
-  // Copy mmr table from parent to child
+
   memmove((char*)np->mmr, (char *)p->mmr, MAX_MMR*sizeof(struct mmr));
-  /* For each valid mmr, copy memory from parent to child, allocating new memory for private regions
-     but not for shared regions, and add child to family for shared regions. */
+
   for (int i = 0; i < MAX_MMR; i++) {
     if(p->mmr[i].valid == 1) {
       if(p->mmr[i].flags & MAP_PRIVATE) {
