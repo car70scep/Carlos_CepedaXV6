@@ -28,7 +28,7 @@ int getprocs(struct pstat*);
 uint64 freepmem(void);
 // void* mmap(void*, int, int, int, int, void*);
 // int munmap(void*, int);
-void *mmap(void*,uint64,int,int,int,int); 
+void* mmap(void*,uint64,int,int,int,uint64); 
 int munmap(void*,uint64);
 
 // ulib.c
