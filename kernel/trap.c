@@ -6,7 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "stat.h"
-
+#include <stddef.h>
 struct spinlock tickslock;
 uint ticks;
 
@@ -207,10 +207,11 @@ void usertrap(void) {
     } else if (r_scause() == 13 || r_scause() == 15) {
         // Check mapped region protection permits operation
         if (r_stval() >= p->sz) {
-            struct mmr_list *mmrlist = get_mmr_list(p->mmr_family.listid);
+            struct mmr_list *mmrlist = get_mmr_list(p->mmr[0].mmr_family.listid); // Assuming mmr_family is in the first entry of the array
             acquire(&mmrlist->lock);
-            struct mmr *mmr = mmrlist->head;
-            while (mmr != 0) {
+            struct mmr_node *mmr_node = &p->mmr[0].mmr_family;
+            while (mmr_node != 0) {
+                struct mmr *mmr = (struct mmr *)((char *)mmr_node - offsetof(struct mmr, mmr_family));
                 if (mmr->valid && mmr->addr < r_stval() && mmr->addr + mmr->length > r_stval()) {
                     // Page fault load
                     if (r_scause() == 13) {
@@ -231,7 +232,7 @@ void usertrap(void) {
                         }
                     }
                 }
-                mmr = mmr->next;
+                mmr_node = mmr_node->next;
             }
             release(&mmrlist->lock);
         }
@@ -257,7 +258,6 @@ void usertrap(void) {
 
     usertrapret();
 }
-
 
 void
 usertrapret(void)
