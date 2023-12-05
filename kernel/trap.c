@@ -6,7 +6,6 @@
 #include "proc.h"
 #include "defs.h"
 #include "stat.h"
-#include <stddef.h>
 
 struct spinlock tickslock;
 uint ticks;
@@ -112,76 +111,6 @@ trapinithart(void)
 //   usertrapret();
 // }
 
-void usertrap(void) {
-    int which_dev = 0;
-
-    if ((r_sstatus() & SSTATUS_SPP) != 0)
-        panic("usertrap: not from user mode");
-
-    w_stvec((uint64)kernelvec);
-
-    struct proc *p = myproc();
-
-    p->trapframe->epc = r_sepc();
-
-    if (r_scause() == 8) {
-        if (p->killed)
-            exit(-1);
-
-        p->trapframe->epc += 4;
-
-        intr_on();
-
-        syscall();
-    } else if ((which_dev = devintr()) != 0) {
-        // ok
-    } else if (r_scause() == 13 || r_scause() == 15) {
-        // Check mapped region protection permits operation
-        if (r_stval() >= p->sz) {
-            for (int i = 0; i < MAX_MMR; i++) {
-                if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
-                    // Page fault load
-                    if (r_scause() == 13) {
-                        // Read permission
-                        if ((p->mmr[i].prot & PROT_READ) == 0) {
-                            p->killed = 1;
-                            exit(-1);
-                        }
-                    }
-                    // Page fault store
-                    if (r_scause() == 15) {
-                        // Write permission
-                        if ((p->mmr[i].prot & PROT_WRITE) == 0) {
-                            p->killed = 1;
-                            exit(-1);
-                        }
-                    }
-                }
-            }
-        }
-
-        void *physical_frame = kalloc();
-        if (physical_frame) {
-            if (mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
-                kfree(physical_frame);
-                p->killed = 1;
-            }
-        }
-    } else {
-        printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-        p->killed = 1;
-    }
-
-    if (p->killed)
-        exit(-1);
-
-    if (which_dev == 2)
-        yield();
-
-    usertrapret();
-}
-
 // void usertrap(void) {
 //     int which_dev = 0;
 
@@ -208,17 +137,12 @@ void usertrap(void) {
 //     } else if (r_scause() == 13 || r_scause() == 15) {
 //         // Check mapped region protection permits operation
 //         if (r_stval() >= p->sz) {
-//             struct mmr_list *mmrlist = get_mmr_list(p->mmr[0].mmr_family.listid); // Assuming mmr_family is in the first entry of the array
-//             acquire(&mmrlist->lock);
-//             struct mmr_node *mmr_node = &p->mmr[0].mmr_family;
-//             while (mmr_node != 0) {
-//                 struct mmr *mmr = (struct mmr *)((char *)mmr_node - offsetof(struct mmr, mmr_family));
-//                 if (mmr->valid && mmr->addr < r_stval() && mmr->addr + mmr->length > r_stval()) {
+//             for (int i = 0; i < MAX_MMR; i++) {
+//                 if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
 //                     // Page fault load
 //                     if (r_scause() == 13) {
 //                         // Read permission
-//                         if ((mmr->prot & PROT_READ) == 0) {
-//                             release(&mmrlist->lock);
+//                         if ((p->mmr[i].prot & PROT_READ) == 0) {
 //                             p->killed = 1;
 //                             exit(-1);
 //                         }
@@ -226,16 +150,13 @@ void usertrap(void) {
 //                     // Page fault store
 //                     if (r_scause() == 15) {
 //                         // Write permission
-//                         if ((mmr->prot & PROT_WRITE) == 0) {
-//                             release(&mmrlist->lock);
+//                         if ((p->mmr[i].prot & PROT_WRITE) == 0) {
 //                             p->killed = 1;
 //                             exit(-1);
 //                         }
 //                     }
 //                 }
-//                 mmr_node = mmr_node->next;
 //             }
-//             release(&mmrlist->lock);
 //         }
 
 //         void *physical_frame = kalloc();
@@ -259,6 +180,126 @@ void usertrap(void) {
 
 //     usertrapret();
 // }
+
+void usertrap(void) {
+    int which_dev = 0;
+
+    if ((r_sstatus() & SSTATUS_SPP) != 0)
+        panic("usertrap: not from user mode");
+
+    w_stvec((uint64)kernelvec);
+
+    struct proc *p = myproc();
+
+    p->trapframe->epc = r_sepc();
+
+    if (r_scause() == 8) {
+        if (p->killed)
+            exit(-1);
+
+        p->trapframe->epc += 4;
+
+        intr_on();
+
+        syscall();
+    } else if ((which_dev = devintr()) != 0) {
+        // ok
+    } else if (r_scause() == 13 || r_scause() == 15) {
+        // Check mapped region protection permits operation
+        if (r_stval() >= p->sz) {
+            struct mmr_list *mmrlist = get_mmr_list(p->mmr_family.listid);
+            acquire(&mmrlist->lock);
+            struct mmr *mmr = mmrlist->head;
+            while (mmr != 0) {
+                if (mmr->valid && mmr->addr < r_stval() && mmr->addr + mmr->length > r_stval()) {
+                    // Page fault load
+                    if (r_scause() == 13) {
+                        // Read permission
+                        if ((mmr->prot & PROT_READ) == 0) {
+                            release(&mmrlist->lock);
+                            p->killed = 1;
+                            exit(-1);
+                        }
+                    }
+                    // Page fault store
+                    if (r_scause() == 15) {
+                        // Write permission
+                        if ((mmr->prot & PROT_WRITE) == 0) {
+                            release(&mmrlist->lock);
+                            p->killed = 1;
+                            exit(-1);
+                        }
+                    }
+                }
+                mmr = mmr->next;
+            }
+            release(&mmrlist->lock);
+        }
+
+        void *physical_frame = kalloc();
+        if (physical_frame) {
+            if (mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
+                kfree(physical_frame);
+                p->killed = 1;
+            }
+        }
+    } else {
+        printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+        p->killed = 1;
+    }
+
+    if (p->killed)
+        exit(-1);
+
+    if (which_dev == 2)
+        yield();
+
+    usertrapret();
+}
+
+
+void
+usertrapret(void)
+{
+  struct proc *p = myproc();
+
+  // we're about to switch the destination of traps from
+  // kerneltrap() to usertrap(), so turn off interrupts until
+  // we're back in user space, where usertrap() is correct.
+  intr_off();
+
+  // send syscalls, interrupts, and exceptions to trampoline.S
+  w_stvec(TRAMPOLINE + (uservec - trampoline));
+
+  // set up trapframe values that uservec will need when
+  // the process next re-enters the kernel.
+  p->trapframe->kernel_satp = r_satp();         // kernel page table
+  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+  p->trapframe->kernel_trap = (uint64)usertrap;
+  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
+
+  // set up the registers that trampoline.S's sret will use
+  // to get to user space.
+  
+  // set S Previous Privilege mode to User.
+  unsigned long x = r_sstatus();
+  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+  x |= SSTATUS_SPIE; // enable interrupts in user mode
+  w_sstatus(x);
+
+  // set S Exception Program Counter to the saved user pc.
+  w_sepc(p->trapframe->epc);
+
+  // tell trampoline.S the user page table to switch to.
+  uint64 satp = MAKE_SATP(p->pagetable);
+
+  // jump to trampoline.S at the top of memory, which 
+  // switches to the user page table, restores user registers,
+  // and switches to user mode with sret.
+  uint64 fn = TRAMPOLINE + (userret - trampoline);
+  ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);
+}
 
 // interrupts and exceptions from kernel code go here via kernelvec,
 // on whatever the current kernel stack is.
