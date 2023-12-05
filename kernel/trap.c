@@ -181,6 +181,8 @@ trapinithart(void)
 //     usertrapret();
 // }
 
+// ...
+
 void usertrap(void) {
     int which_dev = 0;
 
@@ -207,17 +209,12 @@ void usertrap(void) {
     } else if (r_scause() == 13 || r_scause() == 15) {
         // Check mapped region protection permits operation
         if (r_stval() >= p->sz) {
-            struct mmr_list *mmrlist = get_mmr_list(p->mmr[0].mmr_family.listid); // Assuming mmr_family is in the first entry of the array
-            acquire(&mmrlist->lock);
-            struct mmr_node *mmr_node = &p->mmr[0].mmr_family;
-            while (mmr_node != 0) {
-                struct mmr *mmr = (struct mmr *)((char *)mmr_node - offsetof(struct mmr, mmr_family));
-                if (mmr->valid && mmr->addr < r_stval() && mmr->addr + mmr->length > r_stval()) {
+            for (int i = 0; i < MAX_MMR; i++) {
+                if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
                     // Page fault load
                     if (r_scause() == 13) {
                         // Read permission
-                        if ((mmr->prot & PROT_READ) == 0) {
-                            release(&mmrlist->lock);
+                        if ((p->mmr[i].prot & PROT_READ) == 0) {
                             p->killed = 1;
                             exit(-1);
                         }
@@ -225,23 +222,36 @@ void usertrap(void) {
                     // Page fault store
                     if (r_scause() == 15) {
                         // Write permission
-                        if ((mmr->prot & PROT_WRITE) == 0) {
-                            release(&mmrlist->lock);
+                        if ((p->mmr[i].prot & PROT_WRITE) == 0) {
                             p->killed = 1;
                             exit(-1);
                         }
+
+                        // Check if the process is the first to write to the shared memory
+                        if (p->mmr[i].mmr_family.next != &p->mmr[i].mmr_family) {
+                            // Acquire the lock for the list
+                            acquire(&get_mmr_list(p->mmr[i].mmr_family.listid)->lock);
+
+                            // Traverse the circular doubly linked list
+                            struct mmr_node *cur = p->mmr[i].mmr_family.next;
+                            do {
+                                // Insert the new mapping for the allocated physical page into the page tables
+                                void *physical_frame = kalloc();
+                                if (physical_frame) {
+                                    if (mappages(cur->proc->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
+                                        kfree(physical_frame);
+                                        cur->proc->killed = 1;
+                                    }
+                                }
+
+                                cur = cur->next;
+                            } while (cur != &p->mmr[i].mmr_family);
+
+                            // Release the lock for the list
+                            release(&get_mmr_list(p->mmr[i].mmr_family.listid)->lock);
+                        }
                     }
                 }
-                mmr_node = mmr_node->next;
-            }
-            release(&mmrlist->lock);
-        }
-
-        void *physical_frame = kalloc();
-        if (physical_frame) {
-            if (mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
-                kfree(physical_frame);
-                p->killed = 1;
             }
         }
     } else {
@@ -258,6 +268,8 @@ void usertrap(void) {
 
     usertrapret();
 }
+
+
 
 void
 usertrapret(void)
