@@ -178,7 +178,6 @@ int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             mapvpages(pagetable_t, uint64, uint64);
-int             uvmcopy(pagetable_t, pagetable_t, uint64, uint64);
 int             uvmcopyshared(pagetable_t, pagetable_t, uint64, uint64);
 
 // plic.c
