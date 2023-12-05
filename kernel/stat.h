@@ -10,7 +10,7 @@
 #define NULL ((void *)0)
 
 
-struct stat {
+struct stat { 
   int dev;     // File system's disk device
   uint ino;    // Inode number
   short type;  // Type of file
