@@ -202,30 +202,29 @@ sys_sem_destroy(void){
 
 uint64
 sys_sem_wait(void){
-	uint64 s;
-	int addr;
-	//semaphore failed
-	if(argaddr(0, &s) < 0){
-		return -1;
-	}
-	//get address
-	copyin(myproc()->pagetable, (char*)&addr, s, sizeof(int));
-	
-	acquire(&semtable.sem[addr].lock);
-	//decrement
-	if(semtable.sem[addr].count > 0){
-		semtable.sem[addr].count--;	
-		release(&semtable.sem[addr].lock);
+  uint64 sem_addr;
+
+  if(argaddr(0,&sem_addr)<0)
+    return -1;
+
+  int sem_index;
+
+  copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int));
+
+  acquire(&semtable.sem[sem_index].lock);
+
+	if(semtable.sem[sem_index].count > 0){
+		semtable.sem[sem_index].count--;	
+		release(&semtable.sem[sem_index].lock);
 		return 0;
 	}else{
-		while(semtable.sem[addr].count == 0){
-			sleep((void*)&semtable.sem[addr], &semtable.sem[addr].lock);
+		while(semtable.sem[sem_index].count == 0){
+			sleep((void*)&semtable.sem[sem_index], &semtable.sem[sem_index].lock);
 			//release(&semtable.sem[addr].lock);
 		}
-		semtable.sem[addr].count--;
-		release(&semtable.sem[addr].lock);
+		semtable.sem[sem_index].count--;
+		release(&semtable.sem[sem_index].lock);
 	}
-	
 	return 0;
 }
 
@@ -238,11 +237,7 @@ sys_sem_post(void){
 
   int sem_index;
 
-  if(copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int)<0))
-     return -1;
-
-  if(semtable.sem[sem_index].valid == 0)
-     return -1;
+  copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int));
 
   acquire(&semtable.sem[sem_index].lock);
   semtable.sem[sem_index].count +=1;
