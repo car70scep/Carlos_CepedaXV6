@@ -294,7 +294,7 @@ sys_sem_destroy(void){
 		release(&semtable.lock);
 		return -1;
 	}
-	sedealloc(addr);
+	semdealloc(addr);
 	release(&semtable.lock);
 	return 0;
 }
