@@ -209,8 +209,7 @@ sys_sem_wait(void){
 
   int sem_index;
 
-  if(copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int)<0))
-     return -1;
+  copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int));
 
   if(semtable.sem[sem_index].valid==0)
     return -1;
@@ -218,11 +217,20 @@ sys_sem_wait(void){
 
   acquire(&semtable.sem[sem_index].lock);
 
-  while(semtable.sem[sem_index].count == 0)
-    sleep((void*)&semtable.sem[sem_index],&semtable.sem[sem_index].lock);
-  semtable.sem[sem_index].count -=1;
-  release(&semtable.sem[sem_index].lock);
-  return 0;
+	if(semtable.sem[sem_index].count > 0){
+		semtable.sem[sem_index].count--;	
+		release(&semtable.sem[sem_index].lock);
+		return 0;
+	}else{
+		while(semtable.sem[sem_index].count == 0){
+			sleep((void*)&semtable.sem[sem_index], &semtable.sem[sem_index].lock);
+			//release(&semtable.sem[addr].lock);
+		}
+		semtable.sem[sem_index].count--;
+		release(&semtable.sem[sem_index].lock);
+	}
+	
+	return 0;
 }
 
 uint64
