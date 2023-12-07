@@ -178,7 +178,7 @@ sys_sem_init(void){
   }
   index = semalloc();
   semtable.sem[index].count = init_val;
-  if(copyout(myproc()->pagetable,sem_addr,(char*)&index,sizeof(index)<0)){
+  if(copyout(myproc()->pagetable,sem_addr,(char*)&index,sizeof(index))<0){
     //semdealloc(index);
     return -1;
   }
@@ -188,14 +188,15 @@ sys_sem_init(void){
 uint64
 sys_sem_destroy(void){
   uint64 sem_addr;
+  int sem_index;
 
   if(argaddr(0,&sem_addr)<0){
     return -1;
   }
-  int sem_index;
+  
   acquire(&semtable.lock);
 
-  if(copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int)<0 )){
+  if(copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int))<0 ){
     release(&semtable.lock);
     return -1;
   }
