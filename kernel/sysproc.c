@@ -188,12 +188,12 @@ sys_sem_init(void){
 uint64
 sys_sem_destroy(void){
   uint64 sem_addr;
-  int sem_index;
+  
 
   if(argaddr(0,&sem_addr)<0){
     return -1;
   }
-  
+  int sem_index;
   acquire(&semtable.lock);
 
   if(copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int))<0 ){
