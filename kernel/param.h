@@ -18,4 +18,5 @@
 #define TSTICKSHIGH  1    // ticks per time slice for HIGH queue
 #define TSTICKSMEDIUM 50    // ticks per time slice for MEDIUM queue 1)50
 #define TSTICKSLOW    200   // ticks per time slice for LOW queue
+#define NSEM          100 // maximum open semaphores per system
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
