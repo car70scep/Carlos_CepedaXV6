@@ -21,12 +21,12 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_getprocs  22
-// #define SYS_free 23
 #define SYS_freepmem 23
 #define SYS_memuser 24
 #define SYS_private  25
 #define SYS_mmap   26
 #define SYS_munmap  27
-// #define SYS_prodcons1  28
-// #define SYS_prodcons2  29
-// #define SYS_prodcons3  30
+#define SYS_sem_init  28
+#define SYS_sem_destroy  29
+#define SYS_sem_wait  30
+#define SYS_sem_post  31

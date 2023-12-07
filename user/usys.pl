@@ -41,3 +41,7 @@ entry("freepmem");
 entry("private");
 entry("mmap");
 entry("munmap");
+entry("sem_init");
+entry("sem_destroy");
+entry("sem_wait");
+entry("sem_post");

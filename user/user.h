@@ -26,10 +26,12 @@ int sleep(int);
 int uptime(void);
 int getprocs(struct pstat*);
 uint64 freepmem(void);
-// void* mmap(void*, int, int, int, int, void*);
-// int munmap(void*, int);
 void* mmap(void*,uint64,int,int,int,uint64); 
 int munmap(void*,uint64);
+int sem_init(sem_t* sem,int pshared, unsigned int value); 
+int sem_wait(sem_t* sem); 
+int sem_post(sem_t* sem); 
+int sem_destroy(sem_t* sem);
 
 // ulib.c
 int stat(const char*, struct stat*);
