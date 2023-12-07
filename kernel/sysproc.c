@@ -164,18 +164,20 @@ sys_sem_init(void){
   uint64 sem_addr;
   int init_val, pshared;
 
-  if(argaddr(0,&sem_addr)<0)
+  if(argaddr(0,&sem_addr)<0){
     return -1;
-  if(argint(1,&pshared)<0||argint(2,&init_val)<0)
+  }
+  if(argint(1,&pshared)<0||argint(2,&init_val)<0){
     return -1;
-  if(pshared == 0)
+  }
+  if(pshared == 0){
     return -1;
-
+  }
   int index = semalloc();
   semtable.sem[index].count = init_val;
 
   if(copyout(myproc()->pagetable,sem_addr,(char*)&index,sizeof(int)<0)){
-    // semdealloc(index);
+    semdealloc(index);
     return -1;
   }
  return 0;
@@ -185,9 +187,9 @@ uint64
 sys_sem_destroy(void){
   uint64 sem_addr;
 
-  if(argaddr(0,&sem_addr)<0)
+  if(argaddr(0,&sem_addr)<0){
     return -1;
-
+  }
   int sem_index;
   acquire(&semtable.lock);
 
@@ -232,9 +234,9 @@ uint64
 sys_sem_post(void){
   uint64 sem_addr;
 
-  if(argaddr(0,&sem_addr)<0)
+  if(argaddr(0,&sem_addr)<0){
     return -1;
-
+  }
   int sem_index;
 
   copyin(myproc()->pagetable,(char*)&sem_index,sem_addr,sizeof(int));
