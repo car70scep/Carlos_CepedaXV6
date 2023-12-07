@@ -29,87 +29,6 @@ trapinithart(void)
 }
 
 
-// void
-// usertrap(void)
-// {
-//   int which_dev = 0;
-
-//   if((r_sstatus() & SSTATUS_SPP) != 0)
-//     panic("usertrap: not from user mode");
-
-
-//   w_stvec((uint64)kernelvec);
-
-//   struct proc *p = myproc();
-
-
-//   p->trapframe->epc = r_sepc();
-
-//   if(r_scause() == 8){
-
-
-//     if(p->killed)
-//       exit(-1);
-
- 
-//     p->trapframe->epc += 4;
-
-  
-//     intr_on();
-
-//     syscall();
-//   } else if((which_dev = devintr()) != 0){
-//     // ok
-
-    
-//   } else if(r_scause() == 13 || r_scause() == 15){
-//       // Check mapped region protection permits operation
-//       if(r_stval() >= p->sz){
-//         for(int i=0; i<MAX_MMR; i++){
-//           if(p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr+p->mmr[i].length > r_stval()){
-//             // Page fault load
-//             if(r_scause() == 13){
-//               // Read permission
-//               if((p->mmr[i].prot & PROT_READ) == 0){
-//                 p->killed = 1;
-//                 exit(-1);
-//               }
-//             }
-//             // Page fault store
-//             if(r_scause() == 15){
-//               // Write permission
-//               if((p->mmr[i].prot & PROT_WRITE) == 0){
-//                 p->killed = 1;
-//                 exit(-1);
-//               }
-//             }
-//           }
-//         }
-//       }
-      
-//       void *physical_frame = kalloc();
-//       if(physical_frame){
-       
-//         if(mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0){
-//           kfree(physical_frame);
-//           p->killed = 1;
-//         }
-//       }
-//   } else {
-//     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-//     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-//     p->killed = 1;
-//   }
-
-//   if(p->killed)
-//     exit(-1);
-
-  
-//   if(which_dev == 2)
-//     yield();
-
-//   usertrapret();
-// }
 
 void usertrap(void) {
     int which_dev = 0;
@@ -118,9 +37,7 @@ void usertrap(void) {
         panic("usertrap: not from user mode");
 
     w_stvec((uint64)kernelvec);
-
     struct proc *p = myproc();
-
     p->trapframe->epc = r_sepc();
 
     if (r_scause() == 8) {
@@ -128,28 +45,21 @@ void usertrap(void) {
             exit(-1);
 
         p->trapframe->epc += 4;
-
         intr_on();
-
         syscall();
     } else if ((which_dev = devintr()) != 0) {
-        // ok
     } else if (r_scause() == 13 || r_scause() == 15) {
-        // Check mapped region protection permits operation
         if (r_stval() >= p->sz) {
             for (int i = 0; i < MAX_MMR; i++) {
                 if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
-                    // Page fault load
                     if (r_scause() == 13) {
-                        // Read permission
                         if ((p->mmr[i].prot & PROT_READ) == 0) {
                             p->killed = 1;
                             exit(-1);
                         }
                     }
-                    // Page fault store
+                   
                     if (r_scause() == 15) {
-                        // Write permission
                         if ((p->mmr[i].prot & PROT_WRITE) == 0) {
                             p->killed = 1;
                             exit(-1);
@@ -183,91 +93,7 @@ void usertrap(void) {
 
 // ...
 
-// void usertrap(void) {
-//     int which_dev = 0;
 
-//     if ((r_sstatus() & SSTATUS_SPP) != 0)
-//         panic("usertrap: not from user mode");
-
-//     w_stvec((uint64)kernelvec);
-
-//     struct proc *p = myproc();
-
-//     p->trapframe->epc = r_sepc();
-
-//     if (r_scause() == 8) {
-//         if (p->killed)
-//             exit(-1);
-
-//         p->trapframe->epc += 4;
-
-//         intr_on();
-
-//         syscall();
-//     } else if ((which_dev = devintr()) != 0) {
-//         // ok
-//     } else if (r_scause() == 13 || r_scause() == 15) {
-//         // Check mapped region protection permits operation
-//         if (r_stval() >= p->sz) {
-//             for (int i = 0; i < MAX_MMR; i++) {
-//                 if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
-//                     // Page fault load
-//                     if (r_scause() == 13) {
-//                         // Read permission
-//                         if ((p->mmr[i].prot & PROT_READ) == 0) {
-//                             p->killed = 1;
-//                             exit(-1);
-//                         }
-//                     }
-//                     // Page fault store
-//                     if (r_scause() == 15) {
-//                         // Write permission
-//                         if ((p->mmr[i].prot & PROT_WRITE) == 0) {
-//                             p->killed = 1;
-//                             exit(-1);
-//                         }
-
-//                         // Check if the process is the first to write to the shared memory
-//                         if (p->mmr[i].mmr_family.next != &p->mmr[i].mmr_family) {
-//                             // Acquire the lock for the list
-//                             acquire(&get_mmr_list(p->mmr[i].mmr_family.listid)->lock);
-
-//                             // Traverse the circular doubly linked list
-//                             struct mmr_node *cur = p->mmr[i].mmr_family.next;
-//                             do {
-//                                 // Insert the new mapping for the allocated physical page into the page tables
-//                                 void *physical_frame = kalloc();
-//                                 if (physical_frame) {
-//                                     if (mappages(cur->proc->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
-//                                         kfree(physical_frame);
-//                                         cur->proc->killed = 1;
-//                                     }
-//                                 }
-
-//                                 cur = cur->next;
-//                             } while (cur != &p->mmr[i].mmr_family);
-
-//                             // Release the lock for the list
-//                             release(&get_mmr_list(p->mmr[i].mmr_family.listid)->lock);
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     } else {
-//         printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-//         printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-//         p->killed = 1;
-//     }
-
-//     if (p->killed)
-//         exit(-1);
-
-//     if (which_dev == 2)
-//         yield();
-
-//     usertrapret();
-// }
 
 
 
